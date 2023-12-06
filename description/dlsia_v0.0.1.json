@@ -1,0 +1,204 @@
+{
+    "name": "DLSIA_Image_Segmentation",
+    "version": "0.0.1",
+    "type": "supervised",
+    "user": "mlexchange team",
+    "uri": "ghcr.io/mlexchange/mlex_dlsia_segmentation:main",
+    "application": ["segmentation"],
+    "description": "DLSIA for image segmentation",
+    "gui_parameters": [
+      {
+        "type": "radio",
+        "name": "shuffle",
+        "title": "Shuffle Data",
+        "param_key": "shuffle",
+        "value": true,
+        "options": [
+          {"label": "True", "value": true},
+          {"label": "False", "value": false}
+        ],
+        "comp_group": "train_model"
+      },
+      {
+        "type": "slider",
+        "name": "batch_size",
+        "title": "Batch Size",
+        "param_key": "batch_size",
+        "min": 16,
+        "max": 128,
+        "step": 16,
+        "value": 32,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "slider",
+        "name": "val_pct",
+        "title": "Validation Percentage",
+        "param_key": "val_pct",
+        "min": 0,
+        "max": 100,
+        "step": 5,
+        "value": 20,
+        "marks": {
+          "0": "0",
+          "100": "100"
+        },
+        "comp_group": "train_model"
+      },
+      {
+        "type": "dropdown",
+        "name": "network",
+        "title": "Network Architecture",
+        "param_key": "network",
+        "value": "TUNet",
+        "options": [
+          {"label": "MSDNet", "value": "MSDNet"},
+          {"label": "TUNet", "value": "TUNet"},
+          {"label": "TUNet3+", "value": "TUNet3+"}
+        ],
+        "comp_group": "train_model"
+      },
+      {
+        "type": "slider",
+        "name": "num_epochs",
+        "title": "Number of epoch",
+        "param_key": "num_epochs",
+        "min": 1,
+        "max": 1000,
+        "value": 30,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "dropdown",
+        "name": "optimizer",
+        "title": "Optimizer",
+        "param_key": "optimizer",
+        "value": "Adam",
+        "options": [
+          {"label": "Adadelta", "value": "Adadelta"},
+          {"label": "Adagrad", "value": "Adagrad"},
+          {"label": "Adam", "value": "Adam"},
+          {"label": "AdamW", "value": "AdamW"},
+          {"label": "SparseAdam", "value": "SparseAdam"},
+          {"label": "Adamax", "value": "Adamax"},
+          {"label": "ASGD", "value": "ASGD"},
+          {"label": "LBFGS", "value": "LBFGS"},
+          {"label": "RMSprop", "value": "RMSprop"},
+          {"label": "Rprop", "value": "Rprop"},
+          {"label": "SGD", "value": "SGD"}
+        ],
+        "comp_group": "train_model"
+      },
+      {
+        "type": "dropdown",
+        "name": "criterion",
+        "title": "Criterion",
+        "param_key": "criterion",
+        "value": "MSELoss",
+        "options": [
+          {"label": "L1Loss", "value": "L1Loss"},
+          {"label": "MSELoss", "value": "MSELoss"},
+          {"label": "CrossEntropyLoss", "value": "CrossEntropyLoss"},
+          {"label": "CTCLoss", "value": "CTCLoss"},
+          {"label": "NLLLoss", "value": "NLLLoss"},
+          {"label": "PoissonNLLLoss", "value": "PoissonNLLLoss"},
+          {"label": "GaussianNLLLoss", "value": "GaussianNLLLoss"},
+          {"label": "KLDivLoss", "value": "KLDivLoss"},
+          {"label": "BCELoss", "value": "BCELoss"},
+          {"label": "BCEWithLogitsLoss", "value": "BCEWithLogitsLoss"},
+          {"label": "MarginRankingLoss", "value": "MarginRankingLoss"},
+          {"label": "HingeEnbeddingLoss", "value": "HingeEnbeddingLoss"},
+          {"label": "MultiLabelMarginLoss", "value": "MultiLabelMarginLoss"},
+          {"label": "HuberLoss", "value": "HuberLoss"},
+          {"label": "SmoothL1Loss", "value": "SmoothL1Loss"},
+          {"label": "SoftMarginLoss", "value": "SoftMarginLoss"},
+          {"label": "MutiLabelSoftMarginLoss", "value": "MutiLabelSoftMarginLoss"},
+          {"label": "CosineEmbeddingLoss", "value": "CosineEmbeddingLoss"},
+          {"label": "MultiMarginLoss", "value": "MultiMarginLoss"},
+          {"label": "TripletMarginLoss", "value": "TripletMarginLoss"},
+          {"label": "TripletMarginWithDistanceLoss", "value": "TripletMarginWithDistanceLoss"}
+        ],
+        "comp_group": "train_model"
+      },
+      {
+        "type": "float",
+        "name": "learning_rate",
+        "title": "Learning Rate",
+        "param_key": "learning_rate",
+        "value": 0.001,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "num_layers",
+        "title": "Number of Layers",
+        "param_key": "num_layers",
+        "value": 10,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "max_dilation",
+        "title": "Maximum Dilation",
+        "param_key": "max_dilation",
+        "value": 10,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "depth",
+        "title": "Depth",
+        "param_key": "depth",
+        "value": 4,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "base_channels",
+        "title": "Base Channels",
+        "param_key": "base_channels",
+        "value": 32,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "growth_rate",
+        "title": "Growth Rate",
+        "param_key": "growth_rate",
+        "value": 2,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "hidden_rate",
+        "title": "Hidden Rate",
+        "param_key": "hidden_rate",
+        "value": 1,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "int",
+        "name": "carryover_channels",
+        "title": "Carryover Channels",
+        "param_key": "carryover_channels",
+        "value": 32,
+        "comp_group": "train_model"
+      },
+      {
+        "type": "slider",
+        "name": "batch_size",
+        "title": "Batch Size",
+        "param_key": "batch_size",
+        "min": 16,
+        "max": 128,
+        "step": 16,
+        "value": 32,
+        "comp_group": "prediction_model"
+      }
+    ],
+    "cmd": ["python3 src/train_model.py","python3 src/predict_model.py"],
+    "reference": "https://dlsia.readthedocs.io/en/latest/",
+    "content_type": "model",
+    "public": false,
+    "service_type": "backend"
+  }
