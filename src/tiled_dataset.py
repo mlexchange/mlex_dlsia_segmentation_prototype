@@ -23,7 +23,7 @@ class TiledDataset(torch.utils.data.Dataset):
         '''
         self.data_client = from_uri(data_uri, api_key=data_api_key)
         self.mask_client = from_uri(mask_uri, api_key=mask_api_key)
-        self.list_indx = [0,29,176,273]
+        self.list_indx = [10, 201, 222, 493]
         self.transform = transform
 
     def __len__(self):
