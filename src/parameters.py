@@ -47,8 +47,15 @@ class Criterion(str, Enum):
 
 
 class DataloadersParameters(BaseModel):
-    shuffle: Optional[bool] = Field(description="shuffle data")
-    batch_size: Optional[int] = Field(description="batch size")
+    shuffle_train: Optional[bool] = Field(description="whether to shuffle data in train set")
+    batch_size_train: Optional[int] = Field(description="batch size of train set")
+
+    shuffle_val: Optional[bool] = Field(description="whether to shuffle data in validation set")
+    batch_size_val: Optional[int] = Field(description="batch size of validation set")
+
+    shuffle_test: Optional[bool] = Field(description="whether to shuffle data during inference")
+    batch_size_test: Optional[int] = Field(description="batch size for inference")
+
     num_workers: Optional[int] = Field(description="number of workers")
     pin_memory: Optional[bool] = Field(description="memory pinning")
     val_pct: Optional[float] = Field(description="percentage of data to use for validation")
@@ -56,20 +63,25 @@ class DataloadersParameters(BaseModel):
 
 class TrainingParameters(BaseModel):
     network: DLSIANetwork
+    num_classes: int = Field(description="number of classes as output channel")
     num_epochs: int = Field(description="number of epochs")
     optimizer: Optimizer
     criterion: Criterion
     learning_rate: float = Field(description='learning rate')
+    
     num_layers: Optional[int] = Field(description="number of layers for MSDNet")
     custom_dilation: Optional[bool] = Field(description="whether to customize dilation for MSDNet")
     max_dilation: Optional[int] = Field(description="maximum dilation for MSDNet")
     dilation_array: Optional[List[int]] = Field(description="customized dilation array for MSDNet")
+    
     depth: Optional[int] = Field(description='the depth of the UNet')
     base_channels: Optional[int] = Field(description='the number of initial channels for UNet')
     growth_rate: Optional[int] = Field(description='multiplicative growth factor of number of '\
                                        'channels per layer of depth for UNet')
     hidden_rate: Optional[int] = Field(description='multiplicative growth factor of channels within'\
                                        ' each layer for UNet')
+    
     carryover_channels: Optional[int] = Field(description='the number of channels in each skip '\
                                               'connection for UNet3+')
+    
     load: Optional[DataloadersParameters]

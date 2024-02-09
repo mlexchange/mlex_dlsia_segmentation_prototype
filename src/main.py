@@ -5,48 +5,56 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from parameters import TrainingParameters
 from tiled_dataset import TiledDataset
-from encryption import decrypt
+from utils import decrypt, save_seg_to_tiled
 from network import build_network
-from train_segmentation import train_segmentation
+from seg_utils import train_val_split, train_segmentation, segment
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('data_uri', help='tiled uri to training data')
+    parser.add_argument('recon_uri', help='tiled uri to training data')
     parser.add_argument('mask_uri', help='tiled uri to mask')
-    parser.add_argument('data_api_key', help='tiled api key for training data')
+    parser.add_argument('seg_uri', help='tiled uri to segmentation result')
+    parser.add_argument('recon_api_key', help='tiled api key for training data')
     parser.add_argument('mask_api_key', help='tiled api key for mask')
+    parser.add_argument('seg_api_key', help='tiled api key for segmentation result')
+    parser.add_argument('mask_idx', help='mask index from recon data')
+    parser.add_argument('shift', help='pixel shifts for mask')
+    parser.add_argument('save_path', help = 'save path for outputs')
+    parser.add_argument('uid', help='uid for segmentation instance')
     parser.add_argument('parameters', help='training parameters')
     args = parser.parse_args()
 
     # Load parameters
     parameters = TrainingParameters(**json.loads(args.parameters))
 
-    # Prepare dataloders
-    DECRYPTION_KEY = os.getenv('DECRYPTION_KEY')
-    data_api_key = decrypt(args.data_api_key, DECRYPTION_KEY)
-    mask_api_key = decrypt(args.mask_api_key, DECRYPTION_KEY)
+    # # TODO: Decryption
+    # DECRYPTION_KEY = os.getenv('DECRYPTION_KEY')
+    # data_api_key = decrypt(args.data_api_key, DECRYPTION_KEY)
+    # mask_api_key = decrypt(args.mask_api_key, DECRYPTION_KEY)
 
     dataset = TiledDataset(
-        data_uri=args.data_uri,
+        recon_uri=args.recon_uri,
         mask_uri=args.mask_uri,
-        data_api_key=data_api_key,
-        mask_api_key=mask_api_key,
+        seg_uri=args.seg_uri,
+        mask_idx=args.mask_idx,
+        recon_api_key=args.recon_api_key,
+        mask_api_key=args.mask_api_key,
+        seg_api_key=args.seg_api_key,
+        shift=args.shift,
         transform=transforms.ToTensor()
         )
-    trainloader = DataLoader(dataset, **parameters.dataloaders)
-    validationloader = None
+    train_loader, val_loader, test_loader = train_val_split(dataset, **parameters.dataloaders)
 
     # Build network
     net = build_network(
         network=parameters.network,
-        num_classes=dataset.mask_client.max()+1,
-        img_size=dataset.data_client.shape[-2:],
+        num_classes=parameters.num_classes,
+        img_size=dataset.recon_client.shape[-2:],
         num_layers=parameters.num_layers,
         activation=parameters.activation,
         normalization=parameters.normalization,
@@ -71,13 +79,13 @@ if __name__ == '__main__':
 
     net, results = train_segmentation(
         net,
-        trainloader,
-        validationloader,
+        train_loader,
+        val_loader,
         parameters.num_epochs,
         criterion,
         optimizer,
         device,
-        savepath=None,
+        savepath=args.save_path,
         saveevery=None,
         scheduler=None,
         show=0,
@@ -86,28 +94,18 @@ if __name__ == '__main__':
         )
 
     # Save network parameters
-    net.save_network_parameters(save_tunet_path)
+    net.save_network_parameters(args.save_path)
 
     # Clear out unnecessary variables from device memory
     torch.cuda.empty_cache()
 
-    # Load annotated data for segmentation using trained model
-    test_loader_params = {
-        'batch_size': parameters.batch_size,
-        'shuffle': False
-        }
-    test_loader = DataLoader(dataset, **test_loader_params)
-
     # Start segmentation
-    net.to(device)   # send network to GPU
-    for batch in test_loader:
-        with torch.no_grad():
-            data, _ = batch
-            # Necessary data recasting
-            data = data.type(torch.FloatTensor)
-            data = data.to(device)
-            # Input passed through networks here
-            output = net(data)
-            # Individual output passed through argmax to get class prediction
-            prediction = torch.argmax(output.cpu().data, dim=1)
-            torch.save(prediction, save_tunet_path + f'preds_tunet-batch{n}.pt')
+    seg = segment(net, device, test_loader)
+    
+    # Save results back to Tiled
+    # TODO: Change the hard-coding of container keys
+    container_keys = ["mlex_store", 'rec20190524_085542_clay_testZMQ_8bit', 'results']
+    container_keys.append(args.uid)
+    
+    seg_result_uri, seg_result_metadata = save_seg_to_tiled(seg, dataset, container_keys, parameters.network)
+

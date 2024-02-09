@@ -1,12 +1,114 @@
-import logging
-
 import numpy as np
+import pandas as pd
 import torch
-
+from torch.utils.data import DataLoader, random_split
 from dlsia.core.train_scripts import segmentation_metrics
-from save_loss import save_loss
 
+# Train Val Split
+def train_val_split(dataset, parameters):
+    '''
+    This funnction splits the given tiled_dataset object into the train set and val set using torch's built in random_split function.
 
+    Caution: the random_split does not taken class balance into account. Future upgrades for that direction would requrie sampler from torch.
+    '''
+
+    # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
+    train_loader_params = {'batch_size': parameters['batch_size_train'],
+                        'shuffle': parameters['shuffle_train']}
+    val_loader_params = {'batch_size': parameters['batch_size_val'],
+                        'shuffle': parameters['shuffle_val']}
+    # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
+    test_loader_params = {'batch_size': parameters['batch_size_test'],
+                        'shuffle': parameters['shuffle_test']}
+
+    # Build Dataloaders
+    val_pct = parameters['val_pct']
+    val_size = int(val_pct*len(dataset))
+    if len(dataset) == 1:
+        train_loader = DataLoader(dataset, **train_loader_params)
+        val_loader = None
+    elif val_size == 0:
+        train_size = len(dataset) - 1
+        train_data, val_data = random_split(dataset, [train_size, 1])
+        train_loader = DataLoader(train_data, **train_loader_params)
+        val_loader = DataLoader(val_data, **val_loader_params)
+    else:
+        train_size = len(dataset) - val_size
+        train_data, val_data = random_split(dataset, [train_size, val_size])
+        train_loader = DataLoader(train_data, **train_loader_params)
+        val_loader = DataLoader(val_data, **val_loader_params)
+
+    # Build Dataloaders
+    test_loader = DataLoader(dataset, **test_loader_params)
+
+    print("The length of train data is:",len(train_data))
+    print("The length of validation data is:",len(val_data))
+    print("The length of inference data is:",len(dataset))
+    return train_loader, val_loader, test_loader
+
+# Save Loss
+def save_loss(
+        validationloader,
+        savepath,
+        epoch,
+        loss,
+        F1_micro,
+        F1_macro,
+        val_loss=None,
+        F1_val_micro=None,
+        F1_val_macro=None,
+        ):
+    if validationloader is not None:
+        if epoch == 0:
+            table = pd.DataFrame(
+                {
+                    'epoch': [epoch],
+                    'loss': [loss], 
+                    'val_loss': [val_loss], 
+                    'F1_micro': [F1_micro], 
+                    'F1_macro': [F1_macro],
+                    'F1_val_micro': [F1_val_micro],
+                    'F1_val_macro': [F1_val_macro]
+                }
+                )
+        else:
+            table = pd.concat([
+                table, 
+                pd.DataFrame(
+                    {
+                    'epoch': [epoch],
+                    'loss': [loss], 
+                    'val_loss': [val_loss], 
+                    'F1_micro': [F1_micro], 
+                    'F1_macro': [F1_macro],
+                    'F1_val_micro': [F1_val_micro],
+                    'F1_val_macro': [F1_val_macro]
+                    }
+                )
+            ])
+    else:
+        if epoch == 0:
+            table = pd.DataFrame({
+                    'epoch': [epoch],
+                    'loss': [loss], 
+                    'F1_micro': [F1_micro], 
+                    'F1_macro': [F1_macro]})
+        else:
+            table = pd.concat([
+                table, 
+                pd.DataFrame(
+                    {
+                    'epoch': [epoch],
+                    'loss': [loss], 
+                    'F1_micro': [F1_micro], 
+                    'F1_macro': [F1_macro]
+                    }
+                )
+            ])
+    table.to_parquet(savepath+'/losses_per_epoch.parquet', engine='pyarrow')
+    pass
+
+# Train models
 def train_segmentation(
         net,
         trainloader,
@@ -240,3 +342,26 @@ def train_segmentation(
 
     net.load_state_dict(best_state_dict)
     return net, results
+
+# Segmentation
+def segment(net, device, test_loader):
+
+    net.to(device)   # send network to GPU
+    seg = None
+    for batch in test_loader:
+        with torch.no_grad():
+            recon, mask = batch
+            # Necessary data recasting
+            recon = recon.type(torch.FloatTensor)
+            mask = mask.type(torch.LongTensor)
+            recon = recon.to(device)
+            mask = mask.to(device)
+            # Input passed through networks here
+            output_network = net(recon)
+            # Individual output passed through argmax to get predictions
+            preds = torch.argmax(output_network.cpu().data, dim=1).numpy()
+            if seg is None:
+                seg = preds
+            else:
+                seg = np.concatenate((seg, preds), axis = 0)
+    return seg
