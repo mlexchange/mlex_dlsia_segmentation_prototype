@@ -1,4 +1,5 @@
 from cryptography.fernet import Fernet
+import os
 
 # Encryption and Decryption
 def encrypt(
@@ -13,6 +14,13 @@ def decrypt(
         key: bytes
         ) -> bytes:
     return Fernet(key).decrypt(token)
+
+# Create directory
+def create_directory(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print(f"Local Directory '{path}' created.")
+
 
 # Tiled Saving
 def save_seg_to_tiled(seg_result, 

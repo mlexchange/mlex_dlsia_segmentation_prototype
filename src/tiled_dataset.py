@@ -40,7 +40,7 @@ class TiledDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         recon = self.recon_client[self.mask_idx[idx],]
-        mask = self.mask_client[idx,].astype('int') - shift # Conversion to int is needed as switching unlabeled pixels to -1 would cause trouble in uint8 format
+        mask = self.mask_client[idx,].astype('int') - self.shift # Conversion to int is needed as switching unlabeled pixels to -1 would cause trouble in uint8 format
         if self.transform:
             return self.transform(recon), mask
         else:

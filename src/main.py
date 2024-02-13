@@ -9,7 +9,7 @@ from torchvision import transforms
 
 from parameters import TrainingParameters
 from tiled_dataset import TiledDataset
-from utils import decrypt, save_seg_to_tiled
+from utils import decrypt, create_directory, save_seg_to_tiled
 from network import build_network
 from seg_utils import train_val_split, train_segmentation, segment
 
@@ -27,7 +27,11 @@ if __name__ == '__main__':
     parser.add_argument('save_path', help = 'save path for outputs')
     parser.add_argument('uid', help='uid for segmentation instance')
     parser.add_argument('parameters', help='training parameters')
+    
     args = parser.parse_args()
+
+    # Create Result Directory if not existed
+    create_directory(args.save_path)
 
     # Load parameters
     parameters = TrainingParameters(**json.loads(args.parameters))
@@ -36,37 +40,27 @@ if __name__ == '__main__':
     # DECRYPTION_KEY = os.getenv('DECRYPTION_KEY')
     # data_api_key = decrypt(args.data_api_key, DECRYPTION_KEY)
     # mask_api_key = decrypt(args.mask_api_key, DECRYPTION_KEY)
-
+    
     dataset = TiledDataset(
         recon_uri=args.recon_uri,
         mask_uri=args.mask_uri,
         seg_uri=args.seg_uri,
-        mask_idx=args.mask_idx,
+        mask_idx=json.loads(args.mask_idx), # Convert str to list
         recon_api_key=args.recon_api_key,
         mask_api_key=args.mask_api_key,
         seg_api_key=args.seg_api_key,
         shift=args.shift,
         transform=transforms.ToTensor()
         )
-    train_loader, val_loader, test_loader = train_val_split(dataset, **parameters.dataloaders)
 
+    train_loader, val_loader, test_loader = train_val_split(dataset, parameters.dataloaders)
+    
     # Build network
     net = build_network(
         network=parameters.network,
+        recon_shape=dataset.recon_client.shape,
         num_classes=parameters.num_classes,
-        img_size=dataset.recon_client.shape[-2:],
-        num_layers=parameters.num_layers,
-        activation=parameters.activation,
-        normalization=parameters.normalization,
-        final_layer=parameters.final_layer,
-        custom_dilation=parameters.custom_dilation,
-        max_dilation=parameters.max_dilation,
-        dilation_array=parameters.dilation_array,
-        depth=parameters.depth,
-        base_channels=parameters.base_channels,
-        growth_rate=parameters.growth_rate,
-        hidden_rate=parameters.hidden_rate,
-        carryover_channels=parameters.carryover_channels,
+        parameters=parameters,
         )
 
     # Define criterion and optimizer
@@ -94,7 +88,8 @@ if __name__ == '__main__':
         )
 
     # Save network parameters
-    net.save_network_parameters(args.save_path)
+    model_path = f'{args.save_path}/{args.uid}_{parameters.network}.pt'
+    net.save_network_parameters(model_path)
 
     # Clear out unnecessary variables from device memory
     torch.cuda.empty_cache()
