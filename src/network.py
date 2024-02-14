@@ -15,7 +15,7 @@ def build_msdnet(
         ):
     
     if msdnet_parameters.custom_dilation == False:
-        logging.INFO(f'Using maximum dilation: {msdnet_parameters.max_dilation}')
+        logging.info(f'Using maximum dilation: {msdnet_parameters.max_dilation}')
         network = msdnet.MixedScaleDenseNetwork(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -29,7 +29,7 @@ def build_msdnet(
             )
     else:
         dilation_array = np.array(msdnet_parameters.dilation_array)
-        logging.INFO(f'Using custom dilation: {dilation_array}')
+        logging.info(f'Using custom dilation: {dilation_array}')
         network = msdnet.MixedScaleDenseNetwork(
             in_channels=in_channels,
             out_channels=out_channels,
