@@ -2,3 +2,5 @@ cryptography
 dlsia
 pydantic
 tiled[client]
+dvc[s3]>=3.29.0
+dvclive>=3.0.1
