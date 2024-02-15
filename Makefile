@@ -135,7 +135,7 @@ test_tunet:
 	python src/main.py $(RECON_TILED_URI) $(MASK_TILED_URI) $(SEG_TILED_URI) \
                    	   $(RECON_TILED_API_KEY) $(MASK_TILED_API_KEY) $(SEG_TILED_API_KEY) \
                        $(MASK_IDX) $(SHIFT) $(SAVE_PATH) $(UID) \
-                       $(PARAMETERS)
+                       $(TUNET_PARAMETERS)
 
 test_tunet3plus:
 	python src/main.py $(RECON_TILED_URI) $(MASK_TILED_URI) $(SEG_TILED_URI) \
