@@ -1,12 +1,12 @@
 from cryptography.fernet import Fernet
 import os
 
-# Encryption and Decryption
-def encrypt(
-        message: bytes,
-        key: bytes
-        ) -> bytes:
-    return Fernet(key).encrypt(message)
+# # Encryption and Decryption
+# def encrypt(
+#         message: bytes,
+#         key: bytes
+#         ) -> bytes:
+#     return Fernet(key).encrypt(message)
 
 
 def decrypt(
@@ -26,6 +26,7 @@ def create_directory(path):
 def save_seg_to_tiled(seg_result, 
                       tiled_dataset,
                       container_keys,
+                      uuid,
                       model,
                       ):
     last_container = tiled_dataset.seg_client
@@ -36,8 +37,9 @@ def save_seg_to_tiled(seg_result,
             last_container = last_container[key]
 
     metadata={
-        'recon_uri': tiled_dataset.recon_client.uri,
+        'data_tiled_uri': tiled_dataset.data_client.uri,
         'mask_uri': tiled_dataset.mask_client.uri, 
+        'uuid': uuid,
         'model': model, 
         }
     seg_result = last_container.write_array(key="seg_result", array=seg_result, metadata=metadata)

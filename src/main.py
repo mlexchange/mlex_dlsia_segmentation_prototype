@@ -9,20 +9,20 @@ from torchvision import transforms
 
 from parameters import TrainingParameters
 from tiled_dataset import TiledDataset
-from utils import decrypt, create_directory, save_seg_to_tiled
+from utils import create_directory, save_seg_to_tiled
 from network import build_network
 from seg_utils import train_val_split, train_segmentation, segment
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('recon_uri', help='tiled uri to training data')
+    parser.add_argument('data_tiled_uri', help='tiled uri to training data')
     parser.add_argument('mask_uri', help='tiled uri to mask')
     parser.add_argument('seg_uri', help='tiled uri to segmentation result')
-    parser.add_argument('recon_api_key', help='tiled api key for training data')
+    parser.add_argument('data_tiled_api_key', help='tiled api key for training data')
     parser.add_argument('mask_api_key', help='tiled api key for mask')
     parser.add_argument('seg_api_key', help='tiled api key for segmentation result')
-    parser.add_argument('mask_idx', help='mask index from recon data')
+    parser.add_argument('mask_idx', help='mask index from data')
     parser.add_argument('shift', help='pixel shifts for mask')
     parser.add_argument('save_path', help = 'save path for outputs')
     parser.add_argument('uid', help='uid for segmentation instance')
@@ -42,11 +42,11 @@ if __name__ == '__main__':
     # mask_api_key = decrypt(args.mask_api_key, DECRYPTION_KEY)
     
     dataset = TiledDataset(
-        recon_uri=args.recon_uri,
+        data_tiled_uri=args.data_tiled_uri,
         mask_uri=args.mask_uri,
         seg_uri=args.seg_uri,
         mask_idx=json.loads(args.mask_idx), # Convert str to list
-        recon_api_key=args.recon_api_key,
+        data_tiled_api_key=args.data_tiled_api_key,
         mask_api_key=args.mask_api_key,
         seg_api_key=args.seg_api_key,
         shift=args.shift,
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # Build network
     net = build_network(
         network=parameters.network,
-        recon_shape=dataset.recon_client.shape,
+        data_shape=dataset.data_client.shape,
         num_classes=parameters.num_classes,
         parameters=parameters,
         )
@@ -102,5 +102,5 @@ if __name__ == '__main__':
     container_keys = ["mlex_store", 'rec20190524_085542_clay_testZMQ_8bit', 'results']
     container_keys.append(args.uid)
     
-    seg_result_uri, seg_result_metadata = save_seg_to_tiled(seg, dataset, container_keys, parameters.network)
+    seg_result_uri, seg_result_metadata = save_seg_to_tiled(seg, dataset, container_keys, args.uid, parameters.network)
 

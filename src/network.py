@@ -90,16 +90,16 @@ def build_tunet3plus(
 
 def build_network(
         network,
-        recon_shape,
+        data_shape,
         num_classes,
         parameters,
         ):
-    if len(recon_shape)==3:
+    if len(data_shape)==3:
         in_channels = 1
-        image_shape = recon_shape[1:]
+        image_shape = data_shape[1:]
     else:
-        in_channels = recon_shape[1]
-        image_shape = recon_shape[2:]
+        in_channels = data_shape[1]
+        image_shape = data_shape[2:]
 
     out_channels = num_classes
 

@@ -325,14 +325,14 @@ def segment(net, device, test_loader):
     seg = None
     for batch in test_loader:
         with torch.no_grad():
-            recon, mask = batch
+            data, mask = batch
             # Necessary data recasting
-            recon = recon.type(torch.FloatTensor)
+            data = data.type(torch.FloatTensor)
             mask = mask.type(torch.LongTensor)
-            recon = recon.to(device)
+            data = data.to(device)
             mask = mask.to(device)
             # Input passed through networks here
-            output_network = net(recon)
+            output_network = net(data)
             # Individual output passed through argmax to get predictions
             preds = torch.argmax(output_network.cpu().data, dim=1).numpy()
             if seg is None:
