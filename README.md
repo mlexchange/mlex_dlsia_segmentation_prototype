@@ -2,7 +2,7 @@
 
 This pipeline is built using DLSIA Package to run segmentation tasks for the High_Res Segmentation Application. 
 
-Primary goal is to make this compatible with the pipeline for incoming Diamond Beamtime.
+Primary goal is to make this compatible with the updated segmentation application as a paperation for the incoming Diamond Beamtime.
 
 ## Feature Highlights
 
