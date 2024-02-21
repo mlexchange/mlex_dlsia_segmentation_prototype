@@ -18,9 +18,6 @@ def train_val_split(dataset, parameters):
                         'shuffle': parameters.shuffle_train}
     val_loader_params = {'batch_size': parameters.batch_size_val,
                         'shuffle': parameters.shuffle_val}
-    # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
-    test_loader_params = {'batch_size': parameters.batch_size_test,
-                        'shuffle': parameters.shuffle_test}
 
     # Build Dataloaders
     val_pct = parameters.val_pct
@@ -39,10 +36,7 @@ def train_val_split(dataset, parameters):
         train_loader = DataLoader(train_data, **train_loader_params)
         val_loader = DataLoader(val_data, **val_loader_params)
 
-    # Build Dataloaders
-    test_loader = DataLoader(dataset, **test_loader_params)
-
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader
 
 # Save Loss
 def save_loss(
@@ -319,24 +313,21 @@ def train_segmentation(
     return net, results
 
 # Segmentation
-def segment(net, device, test_loader):
-
+def segment(net, device, inference_loader):
     net.to(device)   # send network to GPU
     seg = None
-    for batch in test_loader:
+    for batch in inference_loader:
         with torch.no_grad():
-            data, mask = batch
             # Necessary data recasting
-            data = data.type(torch.FloatTensor)
-            mask = mask.type(torch.LongTensor)
-            data = data.to(device)
-            mask = mask.to(device)
+            batch = batch.type(torch.FloatTensor)
+            batch = batch.to(device)
             # Input passed through networks here
-            output_network = net(data)
+            output_network = net(batch)
             # Individual output passed through argmax to get predictions
-            preds = torch.argmax(output_network.cpu().data, dim=1).numpy()
+            preds = torch.argmax(output_network.cpu(), dim=1).numpy()
             if seg is None:
                 seg = preds
             else:
                 seg = np.concatenate((seg, preds), axis = 0)
+    print(seg.shape)
     return seg

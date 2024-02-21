@@ -144,3 +144,19 @@ def build_network(
             )
         
     return network
+
+def load_network(
+        network,
+        params_path,
+        ):
+    
+    if network == 'MSDNet':
+        network = msdnet.MSDNetwork_from_file(params_path)
+        
+    elif network == 'TUNet':
+        network = tunet.TUNetwork_from_file(params_path)
+        
+    elif network == 'TUNet3+':
+        network = tunet3plus.TUNetwork3Plus_from_file(params_path)
+        
+    return network

@@ -1,19 +1,4 @@
-from cryptography.fernet import Fernet
 import os
-
-# # Encryption and Decryption
-# def encrypt(
-#         message: bytes,
-#         key: bytes
-#         ) -> bytes:
-#     return Fernet(key).encrypt(message)
-
-
-def decrypt(
-        token: bytes,
-        key: bytes
-        ) -> bytes:
-    return Fernet(key).decrypt(token)
 
 # Create directory
 def create_directory(path):

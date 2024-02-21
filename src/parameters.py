@@ -98,8 +98,8 @@ class DataloadersParameters(BaseModel):
     shuffle_val: Optional[bool] = Field(None, description="whether to shuffle data in validation set")
     batch_size_val: Optional[int] = Field(None, description="batch size of validation set")
 
-    shuffle_test: Optional[bool] = Field(None, description="whether to shuffle data during inference")
-    batch_size_test: Optional[int] = Field(None, description="batch size for inference")
+    shuffle_inference: Optional[bool] = Field(None, description="whether to shuffle data during inference")
+    batch_size_inference: Optional[int] = Field(None, description="batch size for inference")
 
     num_workers: Optional[int] = Field(None, description="number of workers")
     pin_memory: Optional[bool] = Field(None, description="memory pinning")
