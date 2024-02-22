@@ -265,7 +265,7 @@ def train_segmentation(
                         f'   Training Loss: {loss:.4e} | Validation Loss: {val_loss:.4e}')
                     logging.info(
                         f'   Micro Training F1: {F1_micro:.4f} | Micro Validation F1: {F1_val_micro:.4f}')
-                    logging._ExcInfoType(
+                    logging.info(
                         f'   Macro Training F1: {F1_macro:.4f} | Macro Validation F1: {F1_val_macro:.4f}')
                 else:
                     logging.info(
