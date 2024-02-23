@@ -1,12 +1,78 @@
+import numpy as np
+import pandas as pd
+import torch
+from torch.utils.data import DataLoader, random_split
+from dlsia.core.train_scripts import segmentation_metrics
 import logging
 
-import numpy as np
-import torch
+# Train Val Split
+def train_val_split(dataset, parameters):
+    '''
+    This funnction splits the given tiled_dataset object into the train set and val set using torch's built in random_split function.
 
-from dlsia.core.train_scripts import segmentation_metrics
-from save_loss import save_loss
+    Caution: the random_split does not taken class balance into account. Future upgrades for that direction would requrie sampler from torch.
+    '''
 
+    # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
+    train_loader_params = {'batch_size': parameters.batch_size_train,
+                        'shuffle': parameters.shuffle_train}
+    val_loader_params = {'batch_size': parameters.batch_size_val,
+                        'shuffle': parameters.shuffle_val}
 
+    # Build Dataloaders
+    val_pct = parameters.val_pct
+    val_size = int(val_pct*len(dataset))
+    if len(dataset) == 1:
+        train_loader = DataLoader(dataset, **train_loader_params)
+        val_loader = None
+    elif val_size == 0:
+        train_size = len(dataset) - 1
+        train_data, val_data = random_split(dataset, [train_size, 1])
+        train_loader = DataLoader(train_data, **train_loader_params)
+        val_loader = DataLoader(val_data, **val_loader_params)
+    else:
+        train_size = len(dataset) - val_size
+        train_data, val_data = random_split(dataset, [train_size, val_size])
+        train_loader = DataLoader(train_data, **train_loader_params)
+        val_loader = DataLoader(val_data, **val_loader_params)
+
+    return train_loader, val_loader
+
+# Save Loss
+def save_loss(
+        validationloader,
+        savepath,
+        epoch,
+        loss,
+        F1_micro,
+        F1_macro,
+        val_loss=None,
+        F1_val_micro=None,
+        F1_val_macro=None,
+        ):
+    if validationloader is not None:
+        table = pd.DataFrame(
+            {
+                'epoch': [epoch],
+                'loss': [loss], 
+                'val_loss': [val_loss], 
+                'F1_micro': [F1_micro], 
+                'F1_macro': [F1_macro],
+                'F1_val_micro': [F1_val_micro],
+                'F1_val_macro': [F1_val_macro]
+            }
+            )
+    
+    else:
+        table = pd.DataFrame({
+                'epoch': [epoch],
+                'loss': [loss], 
+                'F1_micro': [F1_micro], 
+                'F1_macro': [F1_macro]})
+
+    return table
+
+# Train models
 def train_segmentation(
         net,
         trainloader,
@@ -61,6 +127,8 @@ def train_segmentation(
     if savepath is not None:
         if saveevery is None:
             saveevery = 1
+
+    losses = pd.DataFrame()
 
     for epoch in range(NUM_EPOCHS):
         running_train_loss = 0.0
@@ -118,7 +186,6 @@ def train_segmentation(
                 torch.nn.utils.clip_grad_value_(net.parameters(), clip_value)
             optimizer.step()
 
-
             tmp_micro, tmp_macro = segmentation_metrics(output, target)
 
             running_F1_train_micro += tmp_micro.item()
@@ -170,7 +237,8 @@ def train_segmentation(
             F1_validation_trace_micro.append(F1_val_micro)
             F1_validation_trace_macro.append(F1_val_macro)
         
-        save_loss(
+        print(f'Epoch: {epoch}')
+        table = save_loss(
             validationloader,
             savepath,
             epoch,
@@ -181,6 +249,8 @@ def train_segmentation(
             F1_val_micro=F1_val_micro,
             F1_val_macro=F1_val_macro,
             )
+        
+        losses = pd.concat([losses, table])
 
         if show != 0:
             learning_rates = []
@@ -189,18 +259,18 @@ def train_segmentation(
             mean_learning_rate = np.mean(np.array(learning_rates))
             if np.mod(epoch + 1, show) == 0:
                 if validationloader is not None:
-                    logging.INFO(
+                    logging.info(
                         f'Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}')
-                    logging.INFO(
+                    logging.info(
                         f'   Training Loss: {loss:.4e} | Validation Loss: {val_loss:.4e}')
-                    logging.INFO(
+                    logging.info(
                         f'   Micro Training F1: {F1_micro:.4f} | Micro Validation F1: {F1_val_micro:.4f}')
-                    logging.INFO(
+                    logging.info(
                         f'   Macro Training F1: {F1_macro:.4f} | Macro Validation F1: {F1_val_macro:.4f}')
                 else:
-                    logging.INFO(
+                    logging.info(
                         f'Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}')
-                    logging.INFO(
+                    logging.info(
                         f'   Training Loss: {loss:.4e} | Micro Training F1: {F1_micro:.4f} | Macro Training F1: {F1_macro:.4f}')
 
         if validationloader is not None:
@@ -216,14 +286,14 @@ def train_segmentation(
 
             if savepath is not None:
                 torch.save(best_state_dict, savepath + '/net_best')
-                logging.INFO('   Best network found and saved')
-                logging.INFO('')
+                logging.info('Best network found and saved')
+                logging.info('')
 
         if savepath is not None:
             if np.mod(epoch + 1, saveevery) == 0:
                 torch.save(net.state_dict(), savepath + '/net_checkpoint')
-                logging.INFO('   Network intermittently saved')
-                logging.INFO('')
+                logging.info('Network intermittently saved')
+                logging.info('')
 
     if validationloader is None:
         validation_loss = None
@@ -239,4 +309,25 @@ def train_segmentation(
                "Best model index": best_index}
 
     net.load_state_dict(best_state_dict)
+    losses.to_parquet(savepath+'/losses.parquet', engine='pyarrow')
     return net, results
+
+# Segmentation
+def segment(net, device, inference_loader):
+    net.to(device)   # send network to GPU
+    seg = None
+    for batch in inference_loader:
+        with torch.no_grad():
+            # Necessary data recasting
+            batch = batch.type(torch.FloatTensor)
+            batch = batch.to(device)
+            # Input passed through networks here
+            output_network = net(batch)
+            # Individual output passed through argmax to get predictions
+            preds = torch.argmax(output_network.cpu(), dim=1).numpy()
+            if seg is None:
+                seg = preds
+            else:
+                seg = np.concatenate((seg, preds), axis = 0)
+    print(seg.shape)
+    return seg
