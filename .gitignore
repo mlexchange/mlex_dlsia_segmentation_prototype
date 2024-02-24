@@ -1,6 +1,7 @@
 notebooks/models
 results/
 logs.txt
+test_params.yaml
 
 .DS_Store
 
