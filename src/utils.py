@@ -4,7 +4,9 @@ import os
 def create_directory(path):
     if not os.path.exists(path):
         os.makedirs(path)
-        print(f"Local Directory '{path}' created.")
+        print(f"Local directory '{path}' created.")
+    else:
+        print(f"Local directory '{path}' already exsists.")
 
 
 # Tiled Saving
