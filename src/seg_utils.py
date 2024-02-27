@@ -329,5 +329,5 @@ def segment(net, device, inference_loader):
                 seg = preds
             else:
                 seg = np.concatenate((seg, preds), axis = 0)
-    print(seg.shape)
+    print(f'Result array shape: {seg.shape}')
     return seg

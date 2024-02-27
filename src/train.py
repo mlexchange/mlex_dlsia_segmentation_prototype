@@ -1,20 +1,14 @@
-import argparse
-import json
-import os
-import yaml
-
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torchvision import transforms
-
-from parameters import MSDNetParameters, TUNetParameters, TUNet3PlusParameters
-from tiled_dataset import TrainingDataset
-from utils import create_directory
-from network import build_network
-from seg_utils import train_val_split, train_segmentation
-
+import  argparse
+from    network         import  build_network
+from    parameters      import  MSDNetParameters, TUNetParameters, TUNet3PlusParameters
+from    seg_utils       import  train_val_split, train_segmentation
+from    tiled_dataset   import  TiledDataset
+import  torch
+import  torch.nn        as      nn
+import  torch.optim     as      optim
+from    torchvision     import  transforms
+from    utils           import  create_directory
+import  yaml
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -45,7 +39,7 @@ if __name__ == '__main__':
     # Create Result Directory if not existed
     create_directory(parameters['save_path'])
     
-    dataset = TrainingDataset(
+    dataset = TiledDataset(
         data_tiled_uri=parameters['data_tiled_uri'],
         mask_tiled_uri=parameters['mask_tiled_uri'],
         mask_idx=parameters['mask_idx'],
