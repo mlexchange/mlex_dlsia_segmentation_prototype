@@ -1,20 +1,20 @@
 # Example for parameters to excecute
 
 # I/O
-data_tiled_uri: https://foo/bar
+data_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
 data_tiled_api_key: <secret>
-mask_tiled_uri: https://foo/mask
-mask_tiled_api_key: <another-secret>
+mask_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/seg-partial-rec20190524_085542_clay_testZMQ_8bit/seg-partial-20190524_085542_clay_testZMQ_
+mask_tiled_api_key: <secret>
 seg_tiled_uri: http://0.0.0.0:8888
-seg_tiled_api_key: <yet-another-one>
+seg_tiled_api_key: <secret>
 
 mask_idx: [10, 201, 222, 493]
 shift: 2
 save_path: results/models
-uid: uid0001
+uid: uid0015
 
 model_parameters:
-  network: "MSDNet"
+  network: "TUNet"
   num_classes: 3
   num_epochs: 3
   optimizer: "Adam"
@@ -33,7 +33,7 @@ model_parameters:
   batch_size_inference: 1
   val_pct: 0.2
 
-  layer_width: 1
-  num_layers: 3
-  custom_dilation: False
-  max_dilation: 5
+  depth: 4
+  base_channels: 8
+  growth_rate: 2
+  hidden_rate: 1
