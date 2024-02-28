@@ -29,7 +29,7 @@ class TiledDataset(torch.utils.data.Dataset):
             self.mask_client = from_uri(mask_tiled_uri, api_key=mask_tiled_api_key)
         else:
             self.mask_client = None
-        self.mask_idx = list(mask_idx)
+        self.mask_idx = list(mask_idx) if mask_idx else []
         self.shift = int(shift)
         self.transform = transform
 
