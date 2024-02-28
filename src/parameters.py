@@ -40,12 +40,12 @@ class MSDNetParameters(TrainingParameters):
 
 class TUNetParameters(TrainingParameters):    
     depth: Optional[int] = Field(default=4, description='the depth of the UNet')
-    base_channels: Optional[int] = Field(default=8, description='the number of initial channels for UNet')
-    growth_rate: Optional[int] = Field(default=1, description='multiplicative growth factor of number of '\
+    base_channels: Optional[int] = Field(default=32, description='the number of initial channels for UNet')
+    growth_rate: Optional[int] = Field(default=2, description='multiplicative growth factor of number of '\
                                        'channels per layer of depth for UNet')
     hidden_rate: Optional[int] = Field(default=1, description='multiplicative growth factor of channels within'\
                                        ' each layer for UNet')
 
 class TUNet3PlusParameters(TUNetParameters):    
-    carryover_channels: Optional[int] = Field(default=8, description='the number of channels in each skip '\
+    carryover_channels: Optional[int] = Field(default=32, description='the number of channels in each skip '\
                                               'connection for UNet3+')
