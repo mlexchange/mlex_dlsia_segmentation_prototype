@@ -104,20 +104,20 @@ def build_network(
     out_channels = num_classes
 
     if parameters.activation is not None:
-        activation = getattr(nn, parameters.activation.value)
+        activation = getattr(nn, parameters.activation)
         activation = activation()
 
     if parameters.normalization is not None:
-        normalization = getattr(nn, parameters.normalization.value)
+        normalization = getattr(nn, parameters.normalization)
 
     if parameters.convolution is not None:
-        convolution = getattr(nn, parameters.convolution.value)   
+        convolution = getattr(nn, parameters.convolution)   
 
     if network == 'MSDNet':
         network = build_msdnet(
             in_channels,
             out_channels,
-            parameters.msdnet_parameters,
+            parameters,
             activation,
             normalization,
             convolution,
@@ -128,7 +128,7 @@ def build_network(
             in_channels,
             out_channels,
             image_shape,
-            parameters.tunet_parameters,
+            parameters,
             activation,
             normalization,
             )
@@ -138,7 +138,7 @@ def build_network(
             in_channels,
             out_channels,
             image_shape,
-            parameters.tunet3plus_parameters,
+            parameters,
             activation,
             normalization,
             )
