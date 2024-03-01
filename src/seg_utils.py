@@ -2,8 +2,27 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, random_split
+from torch.utils.data.dataloader import default_collate
 from dlsia.core.train_scripts import segmentation_metrics
 import logging
+
+def custom_collate(batch):
+    elem = batch[0]
+    first_data = elem[0]
+    if first_data.ndim == 4:
+        if len(elem) == 2:
+            data, mask = zip(*batch)
+            concated_data = torch.cat(data, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
+            concated_mask = torch.cat(mask, dim=0)
+            print(f'concated_data shape: {concated_data.shape}')
+            print(f'concated_mask shape: {concated_mask.shape}')
+            return [concated_data, concated_mask]
+        else:
+            data = zip(*batch)
+            concated_data = torch.cat(data, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
+            return [concated_data]
+    else:  # Fall back to `default_collate` as suggested by PyTorch documentation
+        return default_collate(batch)
 
 # Train Val Split
 def train_val_split(dataset, parameters):
@@ -22,20 +41,22 @@ def train_val_split(dataset, parameters):
     # Build Dataloaders
     val_pct = parameters.val_pct
     val_size = int(val_pct*len(dataset))
+    print(f'length of dataset: {len(dataset)}')
+    print(f'length of val_size: {val_size}')
     if len(dataset) == 1:
-        train_loader = DataLoader(dataset, **train_loader_params)
+        train_loader = DataLoader(dataset, **train_loader_params, collate_fn=custom_collate)
         val_loader = None
     elif val_size == 0:
         train_size = len(dataset) - 1
         train_data, val_data = random_split(dataset, [train_size, 1])
-        train_loader = DataLoader(train_data, **train_loader_params)
-        val_loader = DataLoader(val_data, **val_loader_params)
+        print(f'train_data size: {len(train_data)}')
+        train_loader = DataLoader(train_data, **train_loader_params, collate_fn=custom_collate)
+        val_loader = DataLoader(val_data, **val_loader_params, collate_fn=custom_collate)
     else:
         train_size = len(dataset) - val_size
         train_data, val_data = random_split(dataset, [train_size, val_size])
-        train_loader = DataLoader(train_data, **train_loader_params)
-        val_loader = DataLoader(val_data, **val_loader_params)
-
+        train_loader = DataLoader(train_data, **train_loader_params, collate_fn=custom_collate)
+        val_loader = DataLoader(val_data, **val_loader_params, collate_fn=custom_collate)
     return train_loader, val_loader
 
 # Save Loss
@@ -198,6 +219,8 @@ def train_segmentation(
         if validationloader is not None:
             with torch.no_grad():
                 for x, y in validationloader:
+                    x = x.type(torch.FloatTensor)
+                    y = y.type(torch.LongTensor)
                     x = x.to(device)
                     y = y.to(device)
                     N_val = y.shape[0]
