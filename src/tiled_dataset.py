@@ -1,5 +1,8 @@
+import numpy as np
 import torch
 from tiled.client import from_uri
+from qlty import cleanup
+from qlty.qlty2D import NCYXQuilt
 
 class TiledDataset(torch.utils.data.Dataset):
     def __init__(
@@ -32,20 +35,42 @@ class TiledDataset(torch.utils.data.Dataset):
         self.mask_idx = list(mask_idx) if mask_idx else []
         self.shift = int(shift)
         self.transform = transform
+        # this object handles unstitching and stitching
+        self.qlty_object = NCYXQuilt(X=self.data_client.shape[-1], 
+                                Y=self.data_client.shape[-2],
+                                window = (50,50),
+                                step = (30,30),
+                                border = (3,3)
+                                )
 
     def __len__(self):
         return len(self.mask_idx)
 
     def __getitem__(self, idx):
         data = self.data_client[self.mask_idx[idx],]
+        print('+++++++++++++++++++++')
+        print(f'slice shape: {data.shape}')
+        # Change to 4d array for qlty requirement
+        data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
+
         if self.mask_client:
             mask = self.mask_client[idx,].astype('int') - self.shift # Conversion to int is needed as switching unlabeled pixels to -1 would cause trouble in uint8 format
-            if self.transform:
-                return self.transform(data), mask
-            else:
-                return data, mask
+            # Change to 3d array for qlty requirement of labels 
+            mask = torch.from_numpy(mask).unsqueeze(0)
+            data_patches, mask_patches = self.qlty_object.unstitch_data_pair(data, mask)
+            border_tensor = self.qlty_object.border_tensor()
+            clean_data_patches, clean_mask_patches, _ = cleanup.weed_sparse_classification_training_pairs_2D(
+                data_patches, 
+                mask_patches, 
+                missing_label=-1, 
+                border_tensor=border_tensor
+                )
+            print('=======================')
+            print(f'clean_data_patches shape: {clean_data_patches.shape}')
+            print(f'clean_mask_patches shape: {clean_mask_patches.shape}')
+
+            return clean_data_patches, clean_mask_patches
+
         else:
-            if self.transform:
-                return self.transform(data)
-            else:
-                return data
+            data_patches = self.qlty_object.unstitch(data)
+            return data_patches
