@@ -1,7 +1,8 @@
 import  argparse
 from    network             import  load_network
 from    parameters          import  MSDNetParameters, TUNetParameters, TUNet3PlusParameters
-from    seg_utils           import  segment
+from    qlty.qlty2D         import  NCYXQuilt
+from    seg_utils           import  custom_collate, segment
 from    tiled_dataset       import  TiledDataset
 import  torch
 from    torch.utils.data    import  DataLoader
@@ -41,6 +42,9 @@ if __name__ == '__main__':
         data_tiled_uri=parameters['data_tiled_uri'],
         mask_idx=parameters['mask_idx'], # Keeping this for a quick inference for now, in future this will be out with updates from app.
         data_tiled_api_key=parameters['data_tiled_api_key'],
+        qlty_window=model_parameters.qlty_window,
+        qlty_step=model_parameters.qlty_step,
+        qlty_border=model_parameters.qlty_border,
         transform=transforms.ToTensor()
         )
     
@@ -48,16 +52,22 @@ if __name__ == '__main__':
     inference_loader_params = {'batch_size': model_parameters.batch_size_inference,
                                'shuffle': model_parameters.shuffle_inference}
     # Build Dataloaders
-    inference_loader = DataLoader(dataset, **inference_loader_params)
+    inference_loader = DataLoader(dataset, **inference_loader_params, collate_fn=custom_collate)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Load Network
-    model_params_path = f"{parameters['save_path']}/{parameters['uid']}_{network}.pt"
+    model_params_path = f"{parameters['uid']}/{parameters['uid']}_{network}.pt"
     net = load_network(network, model_params_path)
 
+    qlty_object = NCYXQuilt(X=dataset.data_client.shape[-1], 
+                            Y=dataset.data_client.shape[-2],
+                            window = (model_parameters.qlty_window, model_parameters.qlty_window),
+                            step = (model_parameters.qlty_step, model_parameters.qlty_step),
+                            border = (model_parameters.qlty_border, model_parameters.qlty_border)
+                            )
     # Start segmentation
-    seg_result = segment(net, device, inference_loader)
+    seg_result = segment(net, device, inference_loader, qlty_object)
     
     # Save results back to Tiled
     # TODO: Change the hard-coding of container keys
