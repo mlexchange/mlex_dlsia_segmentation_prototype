@@ -8,19 +8,21 @@ import logging
 
 def custom_collate(batch):
     elem = batch[0]
+    print(f'elem type: {type(elem)}')
     first_data = elem[0]
-    if first_data.ndim == 4:
-        if len(elem) == 2:
-            data, mask = zip(*batch)
-            concated_data = torch.cat(data, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
-            concated_mask = torch.cat(mask, dim=0)
-            print(f'concated_data shape: {concated_data.shape}')
-            print(f'concated_mask shape: {concated_mask.shape}')
-            return [concated_data, concated_mask]
-        else:
-            data = zip(*batch)
-            concated_data = torch.cat(data, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
-            return [concated_data]
+    print(f'first_data_size: {first_data.shape}')
+    if isinstance(elem, tuple) and elem[0].ndim == 4:
+        data, mask = zip(*batch)
+        concated_data = torch.cat(data, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
+        concated_mask = torch.cat(mask, dim=0)
+        print(f'concated_data shape: {concated_data.shape}')
+        print(f'concated_mask shape: {concated_mask.shape}')
+        return concated_data, concated_mask
+    elif isinstance(elem, torch.Tensor) and elem.ndim == 4:
+        print(f'batch size: {len(batch)}')
+        concated_data = torch.cat(batch, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
+        print(f'concated_data shape: {concated_data.shape}')
+        return concated_data
     else:  # Fall back to `default_collate` as suggested by PyTorch documentation
         return default_collate(batch)
 
@@ -336,9 +338,9 @@ def train_segmentation(
     return net, results
 
 # Segmentation
-def segment(net, device, inference_loader):
+def segment(net, device, inference_loader, qlty_object):
     net.to(device)   # send network to GPU
-    seg = None
+    patch_preds = [] # store results for patches
     for batch in inference_loader:
         with torch.no_grad():
             # Necessary data recasting
@@ -346,11 +348,12 @@ def segment(net, device, inference_loader):
             batch = batch.to(device)
             # Input passed through networks here
             output_network = net(batch)
-            # Individual output passed through argmax to get predictions
-            preds = torch.argmax(output_network.cpu(), dim=1).numpy()
-            if seg is None:
-                seg = preds
-            else:
-                seg = np.concatenate((seg, preds), axis = 0)
+            patch_preds.append(output_network)
+    
+    patch_preds = torch.concat(patch_preds)
+    stitched_result, weights = qlty_object.stitch(patch_preds)
+    # Individual output passed through argmax to get predictions
+    seg = torch.argmax(stitched_result.cpu(), dim=1).numpy()
     print(f'Result array shape: {seg.shape}')
+    print(f'Result array type: {type(seg)}')
     return seg
