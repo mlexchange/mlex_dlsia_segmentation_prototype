@@ -37,7 +37,7 @@ if __name__ == '__main__':
     print('Parameters loaded successfully.')
 
     # Create Result Directory if not existed
-    create_directory(parameters['save_path'])
+    create_directory(parameters['uid'])
     
     dataset = TiledDataset(
         data_tiled_uri=parameters['data_tiled_uri'],
@@ -46,6 +46,9 @@ if __name__ == '__main__':
         data_tiled_api_key=parameters['data_tiled_api_key'],
         mask_tiled_api_key=parameters['mask_tiled_api_key'],
         shift=parameters['shift'],
+        qlty_window=model_parameters.qlty_window,
+        qlty_step=model_parameters.qlty_step,
+        qlty_border=model_parameters.qlty_border,
         transform=transforms.ToTensor()
         )
 
@@ -79,7 +82,7 @@ if __name__ == '__main__':
         criterion,
         optimizer,
         device,
-        savepath=parameters['save_path'],
+        savepath=parameters['uid'],
         saveevery=None,
         scheduler=None,
         show=0,
@@ -88,7 +91,7 @@ if __name__ == '__main__':
         )
 
     # Save network parameters
-    model_params_path = f"{parameters['save_path']}/{parameters['uid']}_{network}.pt"
+    model_params_path = f"{parameters['uid']}/{parameters['uid']}_{network}.pt"
     net.save_network_parameters(model_params_path)
 
     print(f'{network} trained successfully.')
