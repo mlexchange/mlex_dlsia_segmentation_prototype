@@ -1,8 +1,7 @@
-import numpy as np
-import torch
-from tiled.client import from_uri
-from qlty import cleanup
-from qlty.qlty2D import NCYXQuilt
+from    qlty            import  cleanup
+from    qlty.qlty2D     import  NCYXQuilt
+from    tiled.client    import  from_uri
+import  torch
 
 class TiledDataset(torch.utils.data.Dataset):
     def __init__(
@@ -13,6 +12,9 @@ class TiledDataset(torch.utils.data.Dataset):
             data_tiled_api_key=None,
             mask_tiled_api_key=None,
             shift=0,
+            qlty_window=50,
+            qlty_step=30,
+            qlty_border=3,
             transform=None):
         '''
         Args:
@@ -37,11 +39,11 @@ class TiledDataset(torch.utils.data.Dataset):
         self.transform = transform
         # this object handles unstitching and stitching
         self.qlty_object = NCYXQuilt(X=self.data_client.shape[-1], 
-                                Y=self.data_client.shape[-2],
-                                window = (50,50),
-                                step = (30,30),
-                                border = (3,3)
-                                )
+                                     Y=self.data_client.shape[-2],
+                                     window = (qlty_window, qlty_window),
+                                     step = (qlty_step, qlty_step),
+                                     border = (qlty_border, qlty_border)
+                                     )
 
     def __len__(self):
         return len(self.mask_idx)
@@ -73,4 +75,6 @@ class TiledDataset(torch.utils.data.Dataset):
 
         else:
             data_patches = self.qlty_object.unstitch(data)
+            print('=======================')
+            print(f'data_patches shape: {data_patches.shape}')
             return data_patches
