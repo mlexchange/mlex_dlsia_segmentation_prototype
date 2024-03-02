@@ -15,6 +15,11 @@ class TrainingParameters(BaseModel):
     normalization: Optional[str] = Field(default="BatchNorm2d", description="normalization used between layers")
     convolution: Optional[str] = Field(default="Conv2d", description="convolution used in network")
 
+    # Below are QLTY related parameters
+    qlty_window: Optional[int] = Field(default=50, description="window size for stitched patches in qlty")
+    qlty_step: Optional[int] = Field(default=30, description="shifting size for stitched patches in qlty")
+    qlty_border: Optional[int] = Field(default=3, description="border parameter for stitched patches in qlty")
+    
     # Below are Data Loader related parameters
     shuffle_train: Optional[bool] = Field(default=True, description="whether to shuffle data in train set")
     batch_size_train: Optional[int] = Field(default=1, description="batch size of train set")
