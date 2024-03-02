@@ -50,8 +50,7 @@ class TiledDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         data = self.data_client[self.mask_idx[idx],]
-        print('+++++++++++++++++++++')
-        print(f'slice shape: {data.shape}')
+        #print(f'slice shape: {data.shape}')
         # Change to 4d array for qlty requirement
         data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
 
@@ -67,14 +66,14 @@ class TiledDataset(torch.utils.data.Dataset):
                 missing_label=-1, 
                 border_tensor=border_tensor
                 )
-            print('=======================')
-            print(f'clean_data_patches shape: {clean_data_patches.shape}')
-            print(f'clean_mask_patches shape: {clean_mask_patches.shape}')
+            # print('=======================')
+            # print(f'clean_data_patches shape: {clean_data_patches.shape}')
+            # print(f'clean_mask_patches shape: {clean_mask_patches.shape}')
 
             return clean_data_patches, clean_mask_patches
 
         else:
             data_patches = self.qlty_object.unstitch(data)
-            print('=======================')
-            print(f'data_patches shape: {data_patches.shape}')
+            # print('=======================')
+            # print(f'data_patches shape: {data_patches.shape}')
             return data_patches

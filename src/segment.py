@@ -36,7 +36,6 @@ if __name__ == '__main__':
     assert model_parameters, f"Received Unsupported Network: {network}"
     
     print('Parameters loaded successfully.')
-
     
     dataset = TiledDataset(
         data_tiled_uri=parameters['data_tiled_uri'],

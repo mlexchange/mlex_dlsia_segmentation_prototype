@@ -52,9 +52,8 @@ if __name__ == '__main__':
         transform=transforms.ToTensor()
         )
 
-    print('Now in the train val split session')
     train_loader, val_loader = train_val_split(dataset, model_parameters)
-    print('train val split session DONE')   
+      
     # Build network
     net = build_network(
         network=network,
