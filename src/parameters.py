@@ -1,6 +1,19 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
+#===========================================I/O Related Parameters===========================================#
+class IOParameters(BaseModel):
+    data_tiled_uri: str = Field(description="tiled uri for image data")
+    data_tiled_api_key: str = Field(description="tiled api key for data client")
+    mask_tiled_uri: Optional[str] = Field(default=None, description="tiled uri for masks")
+    mask_tiled_api_key: Optional[str] = Field(default=None, description="tiled api key for masks")
+    seg_tiled_uri: Optional[str] = Field(default=None, description="tiled uri for segmenation results")
+    seg_tiled_api_key: Optional[str] = Field(default=None, description="tiled api key for segmentation results")
+    uid: str = Field(description="uid for the workflow")
+    
+    # This is not technically an I/O related parameter, but it controls how many images we want to run inference on
+    workflow_type: str = Field(description="Training, Inference-Preview or Inference-Full") 
+
 #===========================================General Parameters===========================================#
 class TrainingParameters(BaseModel):
     network: str = Field(description="type of dlsia network used")
