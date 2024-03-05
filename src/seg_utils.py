@@ -350,7 +350,8 @@ def train_segmentation(
 def segment(net, device, inference_loader, qlty_object):
     net.to(device)   # send network to GPU
     patch_preds = [] # store results for patches
-    for batch in inference_loader:
+    for idx, batch in enumerate(inference_loader):
+        print(f'{idx}/{len(inference_loader)}')
         with torch.no_grad():
             # Necessary data recasting
             batch = batch.type(torch.FloatTensor)
@@ -363,6 +364,4 @@ def segment(net, device, inference_loader, qlty_object):
     stitched_result, weights = qlty_object.stitch(patch_preds)
     # Individual output passed through argmax to get predictions
     seg = torch.argmax(stitched_result.cpu(), dim=1).numpy()
-    # print(f'Result array shape: {seg.shape}')
-    # print(f'Result array type: {type(seg)}')
     return seg
