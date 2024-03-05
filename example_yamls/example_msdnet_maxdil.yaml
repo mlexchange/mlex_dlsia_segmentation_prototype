@@ -8,7 +8,7 @@ io_parameters:
   mask_tiled_api_key: ''
   seg_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/rec20190524_085542_clay_testZMQ_8bit/results
   seg_tiled_api_key: ''
-  workflow_type: Inference-Full
+  workflow_type: Training
   uid: uid0019
 
 model_parameters:
