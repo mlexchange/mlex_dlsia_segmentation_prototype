@@ -1,6 +1,6 @@
 import  argparse
 from    network         import  build_network
-from    parameters      import  MSDNetParameters, TUNetParameters, TUNet3PlusParameters
+from    parameters      import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters
 from    seg_utils       import  train_val_split, train_segmentation
 from    tiled_dataset   import  TiledDataset
 import  torch
@@ -20,6 +20,10 @@ if __name__ == '__main__':
         # Load parameters
         parameters = yaml.safe_load(file)
 
+    # Validate and load I/O related parameters
+    io_parameters = parameters['io_parameters']
+    io_parameters = IOParameters(**io_parameters)
+
     # Detect which model we have, then load corresponding parameters 
     raw_parameters = parameters['model_parameters']
     network = raw_parameters['network']
@@ -37,21 +41,19 @@ if __name__ == '__main__':
     print('Parameters loaded successfully.')
 
     # Create Result Directory if not existed
-    create_directory(parameters['uid'])
-    
+    create_directory(io_parameters.uid)
+
     dataset = TiledDataset(
-        data_tiled_uri=parameters['data_tiled_uri'],
-        mask_tiled_uri=parameters['mask_tiled_uri'],
-        mask_idx=parameters['mask_idx'],
-        data_tiled_api_key=parameters['data_tiled_api_key'],
-        mask_tiled_api_key=parameters['mask_tiled_api_key'],
-        shift=parameters['shift'],
+        data_tiled_uri=io_parameters.data_tiled_uri,
+        data_tiled_api_key=io_parameters.data_tiled_api_key,
+        mask_tiled_uri=io_parameters.mask_tiled_uri,
+        mask_tiled_api_key=io_parameters.mask_tiled_api_key,
+        workflow_type='Training',
         qlty_window=model_parameters.qlty_window,
         qlty_step=model_parameters.qlty_step,
         qlty_border=model_parameters.qlty_border,
         transform=transforms.ToTensor()
         )
-
     train_loader, val_loader = train_val_split(dataset, model_parameters)
       
     # Build network
@@ -81,7 +83,7 @@ if __name__ == '__main__':
         criterion,
         optimizer,
         device,
-        savepath=parameters['uid'],
+        savepath=io_parameters.uid,
         saveevery=None,
         scheduler=None,
         show=0,
@@ -90,7 +92,7 @@ if __name__ == '__main__':
         )
 
     # Save network parameters
-    model_params_path = f"{parameters['uid']}/{parameters['uid']}_{network}.pt"
+    model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}.pt"
     net.save_network_parameters(model_params_path)
 
     print(f'{network} trained successfully.')
