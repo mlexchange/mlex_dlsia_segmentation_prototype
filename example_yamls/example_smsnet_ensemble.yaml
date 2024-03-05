@@ -11,8 +11,9 @@ io_parameters:
   workflow_type: Inference-Full
   uid: uid0019
 
+
 model_parameters:
-  network: "MSDNet"
+  network: "SMSNet"
   num_classes: 3
   num_epochs: 3
   optimizer: "Adam"
@@ -35,7 +36,13 @@ model_parameters:
   batch_size_inference: 1
   val_pct: 0.2
 
-  layer_width: 1
-  num_layers: 3
-  custom_dilation: True
-  dilation_array: [1, 2, 4]
+  num_networks: 3
+  layers: 3
+  alpha: 0.0
+  gamma: 0.0
+  hidden_channels: null
+  dilation_choices: [1, 2, 3]
+  parameter_bounds: null
+  max_trial: 10
+  network_type: "Classification"
+  parameter_counts_only: False

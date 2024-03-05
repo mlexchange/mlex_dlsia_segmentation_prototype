@@ -1,17 +1,15 @@
 # Example for parameters to excecute
 
 # I/O
-data_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
-data_tiled_api_key: <secret>
-mask_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/seg-partial-rec20190524_085542_clay_testZMQ_8bit/seg-partial-20190524_085542_clay_testZMQ_
-mask_tiled_api_key: <secret>
-seg_tiled_uri: http://0.0.0.0:8888
-seg_tiled_api_key: <secret>
-
-mask_idx: [10, 201, 222, 493]
-shift: 2
-save_path: results/models
-uid: uid0015
+io_parameters:
+  data_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
+  data_tiled_api_key: ''
+  mask_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/mlex_store/mlex_segm_user/rec20190524_085542_clay_testZMQ_8bit/a558f7b1773855b9453bf6c91079699d
+  mask_tiled_api_key: ''
+  seg_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/rec20190524_085542_clay_testZMQ_8bit/results
+  seg_tiled_api_key: ''
+  workflow_type: Inference-Full
+  uid: uid0019
 
 model_parameters:
   network: "TUNet"
