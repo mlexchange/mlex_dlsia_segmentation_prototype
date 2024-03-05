@@ -1,0 +1,6 @@
+dlsia
+pydantic
+tiled[client]
+qlty
+dvc[s3]>=3.29.0
+dvclive>=3.0.1
