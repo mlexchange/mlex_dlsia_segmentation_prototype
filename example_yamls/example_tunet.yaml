@@ -3,13 +3,12 @@
 # I/O
 io_parameters:
   data_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
-  data_tiled_api_key: ''
+  data_tiled_api_key: 
   mask_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/mlex_store/mlex_segm_user/rec20190524_085542_clay_testZMQ_8bit/a558f7b1773855b9453bf6c91079699d
-  mask_tiled_api_key: ''
+  mask_tiled_api_key: 
   seg_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/rec20190524_085542_clay_testZMQ_8bit/results
-  seg_tiled_api_key: ''
-  workflow_type: Inference-Full
-  uid: uid0019
+  seg_tiled_api_key: 
+  uid: uid0020
 
 model_parameters:
   network: "TUNet"
@@ -17,7 +16,7 @@ model_parameters:
   num_epochs: 3
   optimizer: "Adam"
   criterion: "CrossEntropyLoss"
-  weights: null
+  weights: [1, 2, 4]
   learning_rate: 0.1
   activation: "ReLU"
   normalization: "BatchNorm2d"
