@@ -351,7 +351,7 @@ def segment(net, device, inference_loader, qlty_object):
     net.to(device)   # send network to GPU
     patch_preds = [] # store results for patches
     for idx, batch in enumerate(inference_loader):
-        print(f'{idx}/{len(inference_loader)}')
+        print(f'{idx+1}/{len(inference_loader)}')
         with torch.no_grad():
             # Necessary data recasting
             batch = batch.type(torch.FloatTensor)
