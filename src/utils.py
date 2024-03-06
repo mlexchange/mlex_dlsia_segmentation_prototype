@@ -29,7 +29,6 @@ def save_seg_to_tiled(seg_result,
         'uid': uid,
         'model': model, 
         }
-    print(f'metadata: {metadata}')
     seg_result = last_container.write_array(key="seg_result", array=seg_result, metadata=metadata)
     print("Segmentaion result array saved in following uri: ", seg_result.uri)
     return seg_result.uri, seg_result.metadata   
