@@ -1,9 +1,14 @@
+import glob
 import logging
 import numpy as np
 import torch.nn as nn
 
-from dlsia.core.networks import msdnet, tunet, tunet3plus
+from dlsia.core.networks import msdnet, tunet, tunet3plus, smsnet
+from dlsia.core import helpers
 
+from dlsia.core.networks.baggins import model_baggin
+
+#============================MSDNet==================================#
 def build_msdnet(
         in_channels,
         out_channels,
@@ -41,8 +46,9 @@ def build_msdnet(
             final_layer=final_layer,
             convolution=convolution
             )
-    return network
+    return [network]
 
+#============================TUNet==================================#
 def build_tunet(
         in_channels,
         out_channels,
@@ -63,8 +69,9 @@ def build_tunet(
             activation=activation,
             normalization=normalization,
             )
-    return network
+    return [network]
 
+#============================TUNet3+==================================#
 def build_tunet3plus(
         in_channels,
         out_channels,
@@ -86,7 +93,98 @@ def build_tunet3plus(
             activation=activation,
             normalization=normalization,
             )
-    return network
+    return [network]
+
+#============================SMSNet Ensemble==================================#
+def construct_2dsms_ensembler(n_networks,
+                              in_channels,
+                              out_channels,
+                           layers,
+                           alpha = 0.0,
+                           gamma = 0.0,
+                           hidden_channels = None,
+                           dilation_choices = [1,2,3,4],
+                           P_IL = 0.995,
+                           P_LO = 0.995,
+                           P_IO = True,
+                           parameter_bounds = None,
+                           max_trial=100,
+                           network_type="Regression",
+                           parameter_counts_only = False
+                           ):
+
+    networks = []
+
+    layer_probabilities = {
+        'LL_alpha': alpha,
+        'LL_gamma': gamma,
+        'LL_max_degree': layers,
+        'LL_min_degree': 1,
+        'IL': P_IL,
+        'LO': P_LO,
+        'IO': P_IO,
+    }
+
+
+    if parameter_counts_only:
+        assert parameter_bounds is None
+
+    if hidden_channels is None:
+        hidden_channels = [ 3*out_channels ]
+
+    for _ in range(n_networks):
+        ok = False
+        count = 0
+        while not ok:
+            count += 1
+            this_net = smsnet.random_SMS_network(in_channels=in_channels,
+                                                    out_channels=out_channels,
+                                                    layers=layers,
+                                                    dilation_choices=dilation_choices,
+                                                    hidden_out_channels=hidden_channels,
+                                                    layer_probabilities=layer_probabilities,
+                                                    sizing_settings=None,
+                                                    dilation_mode="Edges",
+                                                    network_type=network_type,
+                                                    )
+            pcount = helpers.count_parameters(this_net)
+            if parameter_bounds is not None:
+                if pcount > min(parameter_bounds):
+                    if pcount < max(parameter_bounds):
+                        ok = True
+                        networks.append(this_net)
+                if count > max_trial:
+                    print("Could not generate network, check bounds")
+            else:
+                ok = True
+                if parameter_counts_only:
+                    networks.append(pcount)
+                else:
+                    networks.append(this_net)
+    return networks
+
+def build_smsnet_ensemble(
+        in_channels,
+        out_channels,
+        ensemble_parameters,
+        ):
+
+    list_of_networks = construct_2dsms_ensembler(
+        n_networks=ensemble_parameters.num_networks,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        layers=ensemble_parameters.layers,
+        alpha=ensemble_parameters.alpha,
+        gamma=ensemble_parameters.gamma,
+        hidden_channels=ensemble_parameters.hidden_channels,
+        dilation_choices=ensemble_parameters.dilation_choices,
+        parameter_bounds=None,
+        max_trial=ensemble_parameters.max_trial,
+        network_type='Classification',
+        parameter_counts_only=False,
+        )
+    print(f'Number of SMSNet constructed: {len(list_of_networks)}')
+    return list_of_networks
 
 def build_network(
         network,
@@ -143,6 +241,13 @@ def build_network(
             normalization,
             )
         
+    elif network == 'SMSNetEnsemble':
+        network = build_smsnet_ensemble(
+            in_channels,
+            out_channels,
+            parameters,
+            )
+        
     return network
 
 def load_network(
@@ -160,3 +265,11 @@ def load_network(
         network = tunet3plus.TUNetwork3Plus_from_file(params_path)
         
     return network
+
+def baggin_smsnet_ensemble(network_dir):
+    net_files = glob.glob(f"{network_dir}/*.pt")
+    list_of_smsnet = []
+    for network in net_files:
+        list_of_smsnet.append(smsnet.SMSNetwork_from_file(network))
+    ensemble = model_baggin(models=list_of_smsnet, model_type='classification')
+    return ensemble
