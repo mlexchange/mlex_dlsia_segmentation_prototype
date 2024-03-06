@@ -46,7 +46,7 @@ if __name__ == '__main__':
         data_tiled_api_key=io_parameters.data_tiled_api_key,
         mask_tiled_uri=io_parameters.mask_tiled_uri,
         mask_tiled_api_key=io_parameters.mask_tiled_api_key,
-        workflow_type=io_parameters.workflow_type,
+        is_training=False,
         qlty_window=model_parameters.qlty_window,
         qlty_step=model_parameters.qlty_step,
         qlty_border=model_parameters.qlty_border,
@@ -65,18 +65,11 @@ if __name__ == '__main__':
     model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}.pt"
     net = load_network(network, model_params_path)
 
-    qlty_object = NCYXQuilt(X=dataset.data_client.shape[-1], 
-                            Y=dataset.data_client.shape[-2],
-                            window = (model_parameters.qlty_window, model_parameters.qlty_window),
-                            step = (model_parameters.qlty_step, model_parameters.qlty_step),
-                            border = (model_parameters.qlty_border, model_parameters.qlty_border)
-                            )
     # Start segmentation
-    seg_result = segment(net, device, inference_loader, qlty_object)
+    seg_result = segment(net, device, inference_loader, dataset.qlty_object)
     
     seg_result_uri, seg_result_metadata = save_seg_to_tiled(seg_result, 
-                                                            io_parameters.data_tiled_uri, 
-                                                            io_parameters.mask_tiled_uri,
+                                                            dataset,
                                                             io_parameters.seg_tiled_uri,
                                                             io_parameters.seg_tiled_api_key,
                                                             io_parameters.uid, 
