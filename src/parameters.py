@@ -10,9 +10,6 @@ class IOParameters(BaseModel):
     seg_tiled_uri: Optional[str] = Field(default=None, description="tiled uri for segmenation results")
     seg_tiled_api_key: Optional[str] = Field(default=None, description="tiled api key for segmentation results")
     uid: str = Field(description="uid for the workflow")
-    
-    # This is not technically an I/O related parameter, but it controls how many images we want to run inference on
-    workflow_type: str = Field(description="Training, Inference-Preview or Inference-Full") 
 
 #===========================================General Parameters===========================================#
 class TrainingParameters(BaseModel):
@@ -21,7 +18,7 @@ class TrainingParameters(BaseModel):
     num_epochs: int = Field(default=10, description="number of epochs")
     optimizer: str = Field(default="Adam", description="optimizer used for training")
     criterion: str = Field(default="CrossEntropyLoss", description="criterion for loss")
-    weights: Optional[str] = Field(default=None, description="weights per class for imbalanced labeling")
+    weights: Optional[List[int]] = Field(default=None, description="weights per class for imbalanced labeling")
     learning_rate: float = Field(default=1e-2, description='learning rate')
     
     activation: Optional[str] = Field(default="ReLU", description="activation function used in network")
