@@ -10,7 +10,7 @@ class TiledDataset(torch.utils.data.Dataset):
             data_tiled_api_key=None,
             mask_tiled_uri=None,
             mask_tiled_api_key=None,
-            workflow_type=None,
+            is_training=None,
             qlty_window=50,
             qlty_step=30,
             qlty_border=3,
@@ -21,7 +21,7 @@ class TiledDataset(torch.utils.data.Dataset):
             data_tiled_api_key:  str,    Tiled API key for input data access
             mask_tiled_uri:      str,    Tiled URI of mask
             mask_tiled_api_key:  str,    Tiled API key for mask access
-            workflow_type:       str,    Training, Inference-Preview or Inference-Full
+            is_training:         bool,   Whether this is a training instance
             qlty_window:         int,    patch size for qlty cropping
             qlty_step:           int,    shifting window for qlty
             qlty_border:         int,    border size for qlty
@@ -30,7 +30,9 @@ class TiledDataset(torch.utils.data.Dataset):
         Return:
             ml_data:        tuple, (data_tensor, mask_tensor)
         '''
+        self.data_tiled_uri = data_tiled_uri
         self.data_client = from_uri(data_tiled_uri, api_key=data_tiled_api_key)
+        self.mask_tiled_uri = mask_tiled_uri
         if mask_tiled_uri:
             self.mask_client_one_up = from_uri(mask_tiled_uri, api_key=mask_tiled_api_key)
             self.mask_client = self.mask_client_one_up['mask']
@@ -46,16 +48,16 @@ class TiledDataset(torch.utils.data.Dataset):
                                      step = (qlty_step, qlty_step),
                                      border = (qlty_border, qlty_border)
                                      )
-        self.workflow_type = workflow_type
+        self.is_training = is_training
 
     def __len__(self):
-        if self.workflow_type == 'Inference-Full':
-            return len(self.data_client)
-        else:
+        if self.mask_client:
             return len(self.mask_client)
+        else:
+            return len(self.data_client)
 
     def __getitem__(self, idx):
-        if self.workflow_type == 'Training':    
+        if self.is_training:    
             data = self.data_client[self.mask_idx[idx],]
             # Change to 4d array for qlty requirement
             data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
@@ -72,16 +74,17 @@ class TiledDataset(torch.utils.data.Dataset):
                 )
             return clean_data_patches, clean_mask_patches
         
-        elif self.workflow_type == 'Inference-Preview':
-            data = self.data_client[self.mask_idx[idx],]
-            # Change to 4d array for qlty requirement
-            data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
-            data_patches = self.qlty_object.unstitch(data)
-            return data_patches
-
         else:
-            data = self.data_client[idx,]
-            # Change to 4d array for qlty requirement
-            data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
-            data_patches = self.qlty_object.unstitch(data)
-            return data_patches
+            if self.mask_client:
+                data = self.data_client[self.mask_idx[idx],]
+                # Change to 4d array for qlty requirement
+                data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
+                data_patches = self.qlty_object.unstitch(data)
+                return data_patches
+            
+            else:
+                data = self.data_client[idx,]
+                # Change to 4d array for qlty requirement
+                data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
+                data_patches = self.qlty_object.unstitch(data)
+                return data_patches
