@@ -1,6 +1,5 @@
-dlsia
-pydantic
-tiled[client]
 qlty==0.1.4
-dvc[s3]==3.48.2
 dvclive==3.44.0
+dlsia==0.3.0
+pydantic==2.6.3
+tiled[client]==0.1.0a114
