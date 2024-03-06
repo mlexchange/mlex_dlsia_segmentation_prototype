@@ -8,7 +8,7 @@ io_parameters:
   mask_tiled_api_key: 
   seg_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/rec20190524_085542_clay_testZMQ_8bit/results
   seg_tiled_api_key: 
-  uid: uid0020
+  uid: uid0021
 
 model_parameters:
   network: "MSDNet"
@@ -16,7 +16,7 @@ model_parameters:
   num_epochs: 3
   optimizer: "Adam"
   criterion: "CrossEntropyLoss"
-  weights: [1, 2, 4]
+  weights: [1.0, 2.0, 0.5]
   learning_rate: 0.1
   activation: "ReLU"
   normalization: "BatchNorm2d"
@@ -28,9 +28,9 @@ model_parameters:
   
   shuffle_train: True
   batch_size_train: 3
-  shuffle_val: True
+
   batch_size_val: 2
-  shuffle_inference: False
+
   batch_size_inference: 1
   val_pct: 0.2
 
