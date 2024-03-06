@@ -48,7 +48,7 @@ if __name__ == '__main__':
         data_tiled_api_key=io_parameters.data_tiled_api_key,
         mask_tiled_uri=io_parameters.mask_tiled_uri,
         mask_tiled_api_key=io_parameters.mask_tiled_api_key,
-        workflow_type='Training',
+        is_training=True,
         qlty_window=model_parameters.qlty_window,
         qlty_step=model_parameters.qlty_step,
         qlty_border=model_parameters.qlty_border,
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
-    criterion = criterion(weight=model_parameters.weights,
+    criterion = criterion(weight=torch.tensor(model_parameters.weights,dtype=torch.float),
                           ignore_index=-1, 
                           size_average=None
                           )    
