@@ -1,6 +1,6 @@
 import  argparse
 from    network         import  build_network
-from    parameters      import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters
+from    parameters      import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters, SMSNetEnsembleParameters
 from    seg_utils       import  train_val_split, train_segmentation
 from    tiled_dataset   import  TiledDataset
 import  torch
@@ -24,6 +24,9 @@ if __name__ == '__main__':
     io_parameters = parameters['io_parameters']
     io_parameters = IOParameters(**io_parameters)
 
+    # Check whether mask_uri has been provided as this is a requirement for training.
+    assert io_parameters.mask_tiled_uri, 'Mask URI not provided for training.'
+
     # Detect which model we have, then load corresponding parameters 
     raw_parameters = parameters['model_parameters']
     network = raw_parameters['network']
@@ -35,6 +38,8 @@ if __name__ == '__main__':
         model_parameters = TUNetParameters(**raw_parameters)
     elif network == 'TUNet3+':
         model_parameters = TUNet3PlusParameters(**raw_parameters)
+    elif network == 'SMSNetEnsemble':
+        model_parameters = SMSNetEnsembleParameters(**raw_parameters)
     
     assert model_parameters, f"Received Unsupported Network: {network}"
     
@@ -57,7 +62,7 @@ if __name__ == '__main__':
     train_loader, val_loader = train_val_split(dataset, model_parameters)
       
     # Build network
-    net = build_network(
+    networks = build_network(
         network=network,
         data_shape=dataset.data_client.shape,
         num_classes=model_parameters.num_classes,
@@ -70,33 +75,32 @@ if __name__ == '__main__':
                           ignore_index=-1, 
                           size_average=None
                           )    
-    optimizer = getattr(optim, model_parameters.optimizer)
-    optimizer = optimizer(net.parameters(), lr = model_parameters.learning_rate)
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    net, results = train_segmentation(
-        net,
-        train_loader,
-        val_loader,
-        model_parameters.num_epochs,
-        criterion,
-        optimizer,
-        device,
-        savepath=io_parameters.uid,
-        saveevery=None,
-        scheduler=None,
-        show=0,
-        use_amp=False,
-        clip_value=None
-        )
-
-    # Save network parameters
-    model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}.pt"
-    net.save_network_parameters(model_params_path)
-
-    print(f'{network} trained successfully.')
-    # Clear out unnecessary variables from device memory
-    torch.cuda.empty_cache()
-
     
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    for idx, net in enumerate(networks):
+        print(f'{network}: {idx+1}/{len(networks)}')
+        optimizer = getattr(optim, model_parameters.optimizer)
+        optimizer = optimizer(net.parameters(), lr = model_parameters.learning_rate)
+        net, results = train_segmentation(
+            net,
+            train_loader,
+            val_loader,
+            model_parameters.num_epochs,
+            criterion,
+            optimizer,
+            device,
+            savepath=io_parameters.uid,
+            saveevery=None,
+            scheduler=None,
+            show=0,
+            use_amp=False,
+            clip_value=None
+            )
+        # Save network parameters
+        model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}{idx+1}.pt"
+        net.save_network_parameters(model_params_path)
+        # Clear out unnecessary variables from device memory
+        torch.cuda.empty_cache()
+    
+    print(f'{network} trained successfully.')
