@@ -1,7 +1,7 @@
 import  argparse
 from    network         import  build_network
-from    parameters      import  MSDNetParameters, TUNetParameters, TUNet3PlusParameters
-from    seg_utils       import  train_val_split, train_segmentation
+from    parameters      import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters
+from    seg_utils       import  train_val_split, Trainer
 from    tiled_dataset   import  TiledDataset
 import  torch
 import  torch.nn        as      nn
@@ -9,6 +9,10 @@ import  torch.optim     as      optim
 from    torchvision     import  transforms
 from    utils           import  create_directory
 import  yaml
+
+#20240214, added by xchong ##
+from dvclive import Live
+#20240214, added by xchong ##
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -19,6 +23,10 @@ if __name__ == '__main__':
     with open(args.yaml_path, 'r') as file:
         # Load parameters
         parameters = yaml.safe_load(file)
+
+    # Validate and load I/O related parameters
+    io_parameters = parameters['io_parameters']
+    io_parameters = IOParameters(**io_parameters)
 
     # Detect which model we have, then load corresponding parameters 
     raw_parameters = parameters['model_parameters']
@@ -37,20 +45,21 @@ if __name__ == '__main__':
     print('Parameters loaded successfully.')
 
     # Create Result Directory if not existed
-    create_directory(parameters['save_path'])
-    
+    create_directory(io_parameters.uid)
+
     dataset = TiledDataset(
-        data_tiled_uri=parameters['data_tiled_uri'],
-        mask_tiled_uri=parameters['mask_tiled_uri'],
-        mask_idx=parameters['mask_idx'],
-        data_tiled_api_key=parameters['data_tiled_api_key'],
-        mask_tiled_api_key=parameters['mask_tiled_api_key'],
-        shift=parameters['shift'],
+        data_tiled_uri=io_parameters.data_tiled_uri,
+        data_tiled_api_key=io_parameters.data_tiled_api_key,
+        mask_tiled_uri=io_parameters.mask_tiled_uri,
+        mask_tiled_api_key=io_parameters.mask_tiled_api_key,
+        workflow_type='Training',
+        qlty_window=model_parameters.qlty_window,
+        qlty_step=model_parameters.qlty_step,
+        qlty_border=model_parameters.qlty_border,
         transform=transforms.ToTensor()
         )
-
     train_loader, val_loader = train_val_split(dataset, model_parameters)
-    
+      
     # Build network
     net = build_network(
         network=network,
@@ -70,24 +79,36 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    net, results = train_segmentation(
-        net,
-        train_loader,
-        val_loader,
-        model_parameters.num_epochs,
-        criterion,
-        optimizer,
-        device,
-        savepath=parameters['save_path'],
-        saveevery=None,
-        scheduler=None,
-        show=0,
-        use_amp=False,
-        clip_value=None
-        )
+
+    ## 20240305, modified by xchong ##
+    use_dvclive = True
+    if use_dvclive:
+        dvclive_savepath = str(io_parameters.uid)+"/"+str(io_parameters.uid) + "_dvclive"
+        dvclive = Live(dvclive_savepath,report="html")
+    else:
+        dvclive = None
+
+    trainer =                         Trainer(net,
+                                            train_loader,
+                                            val_loader,
+                                            model_parameters.num_epochs,
+                                            criterion,
+                                            optimizer,
+                                            device,
+                                            dvclive=dvclive,
+                                            savepath=io_parameters.uid,
+                                            saveevery=None,
+                                            scheduler=None,
+                                            show=0,
+                                            use_amp=False,
+                                            clip_value=None
+                                            )   # training happens here
+
+    net, results = trainer.train_segmentation()   # training happens here
+    ## 20240305, modified by xchong ##
 
     # Save network parameters
-    model_params_path = f"{parameters['save_path']}/{parameters['uid']}_{network}.pt"
+    model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}.pt"
     net.save_network_parameters(model_params_path)
 
     print(f'{network} trained successfully.')
