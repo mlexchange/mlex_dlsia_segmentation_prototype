@@ -1,6 +1,7 @@
 import  argparse
-from    network             import  load_network
-from    parameters          import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters
+import  glob
+from    network             import  load_network, baggin_smsnet_ensemble
+from    parameters          import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters, SMSNetEnsembleParameters
 from    qlty.qlty2D         import  NCYXQuilt
 from    seg_utils           import  custom_collate, segment
 from    tiled_dataset       import  TiledDataset
@@ -36,6 +37,8 @@ if __name__ == '__main__':
         model_parameters = TUNetParameters(**raw_parameters)
     elif network == 'TUNet3+':
         model_parameters = TUNet3PlusParameters(**raw_parameters)
+    elif network == 'SMSNetEnsemble':
+        model_parameters = SMSNetEnsembleParameters(**raw_parameters)
     
     assert model_parameters, f"Received Unsupported Network: {network}"
     
@@ -55,15 +58,18 @@ if __name__ == '__main__':
 
     # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
     inference_loader_params = {'batch_size': model_parameters.batch_size_inference,
-                               'shuffle': model_parameters.shuffle_inference}
+                               'shuffle': False}
     # Build Dataloaders
     inference_loader = DataLoader(dataset, **inference_loader_params, collate_fn=custom_collate)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Load Network
-    model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}.pt"
-    net = load_network(network, model_params_path)
+    if network == 'SMSNetEnsemble':
+        net = baggin_smsnet_ensemble(io_parameters.uid)
+    else:
+        net_files = glob.glob(f"{io_parameters.uid}/*.pt")
+        net = load_network(network, net_files[0])
 
     # Start segmentation
     seg_result = segment(net, device, inference_loader, dataset.qlty_object)
