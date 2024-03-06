@@ -11,6 +11,9 @@ train_tunet:
 train_tunet3plus:
 	python src/train.py example_yamls/example_tunet3plus.yaml
 
+train_smsnet_ensemble:
+	python src/train.py example_yamls/example_smsnet_ensemble.yaml
+
 # =================Inferening Commands==================================== #
 segment_msdnet_maxdil:
 	python src/segment.py example_yamls/example_msdnet_maxdil.yaml
@@ -23,3 +26,6 @@ segment_tunet:
 
 segment_tunet3plus:
 	python src/segment.py example_yamls/example_tunet3plus.yaml
+	
+segment_smsnet_ensemble:
+	python src/segment.py example_yamls/example_smsnet_ensemble.yaml

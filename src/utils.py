@@ -12,27 +12,20 @@ def create_directory(path):
 
 # Tiled Saving
 def save_seg_to_tiled(seg_result,
-                      data_tiled_uri,
-                      mask_tiled_uri,
+                      tiled_dataset,
                       seg_tiled_uri,
                       seg_tiled_api_key,
-                      container_keys,
                       uid,
                       model,
                       ):
     
     last_container = from_uri(seg_tiled_uri, api_key=seg_tiled_api_key)
-    container_keys.append(uid)
-    
-    for key in container_keys:
-        if key not in last_container.keys():
-            last_container = last_container.create_container(key=key)
-        else:
-            last_container = last_container[key]
+    last_container = last_container.create_container(key=uid)
 
     metadata={
-        'data_tiled_uri': data_tiled_uri,
-        'mask_uri': mask_tiled_uri, 
+        'data_tiled_uri': tiled_dataset.data_tiled_uri,
+        'mask_uri': tiled_dataset.mask_tiled_uri, 
+        'mask_idx': tiled_dataset.mask_idx,
         'uid': uid,
         'model': model, 
         }

@@ -2,7 +2,7 @@ notebooks/models
 results/
 logs.txt
 test_params.yaml
-
+uid*/
 .DS_Store
 
 # dvc related for testing 
