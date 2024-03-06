@@ -22,15 +22,15 @@ model_parameters:
   normalization: "BatchNorm2d"
   convolution: "Conv2d"
 
-  qlty_window: 50
-  qlty_step: 30
+  qlty_window: 512
+  qlty_step: 100
   qlty_border: 3
   
   shuffle_train: True
   batch_size_train: 1
-  shuffle_val: True
+
   batch_size_val: 1
-  shuffle_inference: False
+
   batch_size_inference: 1
   val_pct: 0.2
 
