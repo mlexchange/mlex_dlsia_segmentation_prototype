@@ -333,21 +333,28 @@ def train_segmentation(
     return net, results
 
 # Segmentation
-def segment(net, device, inference_loader, qlty_object):
+def segment(net, device, inference_loader, qlty_object, tiled_client):
     net.to(device)   # send network to GPU
-    patch_preds = [] # store results for patches
+    frame_number = 0
     for idx, batch in enumerate(inference_loader):
-        print(f'{idx+1}/{len(inference_loader)}')
+        print(f'Batch: {idx+1}/{len(inference_loader)}')
         with torch.no_grad():
             # Necessary data recasting
             batch = batch.type(torch.FloatTensor)
             batch = batch.to(device)
             # Input passed through networks here
-            output_network = net(batch)
-            patch_preds.append(output_network)
-    
-    patch_preds = torch.concat(patch_preds)
-    stitched_result, weights = qlty_object.stitch(patch_preds)
-    # Individual output passed through argmax to get predictions
-    seg = torch.argmax(stitched_result.cpu(), dim=1).numpy()
-    return seg
+            patch_output = net(batch)
+            stitched_result, weights = qlty_object.stitch(patch_output)
+            # Individual output passed through argmax to get predictions
+            seg_batch = torch.argmax(stitched_result.cpu(), dim=1).numpy().astype(np.int8)
+            batch_size = seg_batch.shape[0]
+            for n in range(batch_size):
+                frame = seg_batch[[n]]
+                #print(f'frame unique: {np.unique(frame)}')
+                # Write back to Tiled for the single frame
+                tiled_client.write_block(frame, block=(frame_number,0,0))
+                #print(f'saved labels value: {np.unique(tiled_client.read()[frame_number::])}')
+                print(f'Frame {frame_number+1} saved to Tiled')
+                frame_number+=1
+
+    return frame_number
