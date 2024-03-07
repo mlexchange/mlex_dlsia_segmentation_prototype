@@ -10,7 +10,7 @@ class IOParameters(BaseModel):
     seg_tiled_uri: Optional[str] = Field(default=None, description="tiled uri for segmenation results")
     seg_tiled_api_key: Optional[str] = Field(default=None, description="tiled api key for segmentation results")
     uid_save: str = Field(description="uid to save models, metrics and etc")
-    uid_retrieve: str = Field(description="uid to retrieve models")
+    uid_retrieve: Optional[str] = Field(description="optional, uid to retrieve models for inference")
 
 #===========================================General Parameters===========================================#
 class TrainingParameters(BaseModel):
