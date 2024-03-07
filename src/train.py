@@ -46,7 +46,7 @@ if __name__ == '__main__':
     print('Parameters loaded successfully.')
 
     # Create Result Directory if not existed
-    create_directory(io_parameters.uid)
+    create_directory(io_parameters.uid_save)
 
     dataset = TiledDataset(
         data_tiled_uri=io_parameters.data_tiled_uri,
@@ -71,7 +71,10 @@ if __name__ == '__main__':
 
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
-    criterion = criterion(weight=torch.tensor(model_parameters.weights,dtype=torch.float),
+    # Convert the string to a list of floats
+    weights = [float(x) for x in model_parameters.weights.strip('[]').split(', ')]
+    weights = torch.tensor(weights,dtype=torch.float)
+    criterion = criterion(weight=weights,
                           ignore_index=-1, 
                           size_average=None
                           )    
@@ -90,7 +93,7 @@ if __name__ == '__main__':
             criterion,
             optimizer,
             device,
-            savepath=io_parameters.uid,
+            savepath=io_parameters.uid_save,
             saveevery=None,
             scheduler=None,
             show=0,
@@ -98,7 +101,7 @@ if __name__ == '__main__':
             clip_value=None
             )
         # Save network parameters
-        model_params_path = f"{io_parameters.uid}/{io_parameters.uid}_{network}{idx+1}.pt"
+        model_params_path = f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
         net.save_network_parameters(model_params_path)
         # Clear out unnecessary variables from device memory
         torch.cuda.empty_cache()
