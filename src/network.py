@@ -33,7 +33,7 @@ def build_msdnet(
             convolution=convolution
             )
     else:
-        dilation_array = [int(x) for x in msdnet_parameters.dilation_array.strip('[]').split(', ')]
+        dilation_array = [int(x.strip('[]')) for x in msdnet_parameters.dilation_array.split(', ')]
         dilation_array = np.array(dilation_array)
         logging.info(f'Using custom dilation: {dilation_array}')
         network = msdnet.MixedScaleDenseNetwork(
@@ -170,7 +170,7 @@ def build_smsnet_ensemble(
         ensemble_parameters,
         ):
 
-    dilation_choices = [int(x) for x in ensemble_parameters.dilation_choices.strip('[]').split(', ')]
+    dilation_choices = [int(x.strip('[]')) for x in ensemble_parameters.dilation_choices.split(', ')]
     list_of_networks = construct_2dsms_ensembler(
         n_networks=ensemble_parameters.num_networks,
         in_channels=in_channels,
