@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional
 
 #===========================================I/O Related Parameters===========================================#
 class IOParameters(BaseModel):
@@ -9,7 +9,8 @@ class IOParameters(BaseModel):
     mask_tiled_api_key: Optional[str] = Field(default=None, description="tiled api key for masks")
     seg_tiled_uri: Optional[str] = Field(default=None, description="tiled uri for segmenation results")
     seg_tiled_api_key: Optional[str] = Field(default=None, description="tiled api key for segmentation results")
-    uid: str = Field(description="uid for the workflow")
+    uid_save: str = Field(description="uid to save models, metrics and etc")
+    uid_retrieve: str = Field(description="uid to retrieve models")
 
 #===========================================General Parameters===========================================#
 class TrainingParameters(BaseModel):
@@ -18,7 +19,7 @@ class TrainingParameters(BaseModel):
     num_epochs: int = Field(default=10, description="number of epochs")
     optimizer: str = Field(default="Adam", description="optimizer used for training")
     criterion: str = Field(default="CrossEntropyLoss", description="criterion for loss")
-    weights: Optional[List[float]] = Field(default=None, description="weights per class for imbalanced labeling")
+    weights: Optional[str] = Field(default=None, description="weights per class for imbalanced labeling")
     learning_rate: float = Field(default=1e-2, description='learning rate')
     
     activation: Optional[str] = Field(default="ReLU", description="activation function used in network")
@@ -49,7 +50,7 @@ class MSDNetParameters(TrainingParameters):
     num_layers: Optional[int] = Field(default=3, description="number of layers for MSDNet")
     custom_dilation: Optional[bool] = Field(default=False, description="whether to customize dilation for MSDNet")
     max_dilation: Optional[int] = Field(default=5, description="maximum dilation for MSDNet")
-    dilation_array: Optional[List[int]] = Field(default=None, description="customized dilation array for MSDNet")
+    dilation_array: Optional[str] = Field(default=None, description="customized dilation array for MSDNet")
 
 class TUNetParameters(TrainingParameters):    
     depth: Optional[int] = Field(default=4, description='the depth of the UNet')
@@ -69,5 +70,5 @@ class SMSNetEnsembleParameters(TrainingParameters):
     alpha: Optional[float] = Field(default=0.0, description="aplha used in ensemble")
     gamma: Optional[float] = Field(default=0.0, description="gamma used in ensemble")
     hidden_channels: Optional[int] = Field(default=None, description="hidden channels, limit from 3 to 20")
-    dilation_choices: Optional[List[int]] = Field(default=None, description="customized dilation choices")
+    dilation_choices: Optional[str] = Field(default=None, description="customized dilation choices")
     max_trial: Optional[int] = Field(default=10, description="max trial for the ensemble")
