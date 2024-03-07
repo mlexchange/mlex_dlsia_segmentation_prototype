@@ -350,10 +350,9 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
             batch_size = seg_batch.shape[0]
             for n in range(batch_size):
                 frame = seg_batch[[n]]
-                #print(f'frame unique: {np.unique(frame)}')
                 # Write back to Tiled for the single frame
+                # TODO: Explore the use of threading to speed up this process.
                 tiled_client.write_block(frame, block=(frame_number,0,0))
-                #print(f'saved labels value: {np.unique(tiled_client.read()[frame_number::])}')
                 print(f'Frame {frame_number+1} saved to Tiled')
                 frame_number+=1
 
