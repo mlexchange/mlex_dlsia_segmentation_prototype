@@ -72,7 +72,7 @@ if __name__ == '__main__':
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
     # Convert the string to a list of floats
-    weights = [float(x.strip('[]')) for x in model_parameters.weights.split(', ')]
+    weights = [float(x) for x in model_parameters.weights.strip('[]').split(',')]
     weights = torch.tensor(weights,dtype=torch.float)
     criterion = criterion(weight=weights,
                           ignore_index=-1, 
