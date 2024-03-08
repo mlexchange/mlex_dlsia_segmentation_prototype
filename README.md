@@ -37,11 +37,21 @@ pip install -r requirements.txt
 ```
 - Initialize DVC for loss and metric saving, this only needs to be done once with your github account:
 
+First, remove or comment out `.dvc*` and `dvc*` from .gitignore file. 
+
+Then run in the following order:
+
 ```
+git init
+
+dvc init
+
 git config --global [user.name](http://user.name/) "John Doe"
 
 git config --global user.email "johndoe@email.com"
 ```
+
+Then add back dvc related files in .gitignore file.
 
 Note: this step is only for dvc related repo and directory initialization, it will not enable auto-commits back to the GitHub repo or dvc repo. This feature will be discussed and potentially introduced in the future. 
 
