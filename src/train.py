@@ -69,22 +69,23 @@ if __name__ == '__main__':
         parameters=model_parameters,
         )
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
     # Convert the string to a list of floats
     weights = [float(x) for x in model_parameters.weights.strip('[]').split(',')]
-    weights = torch.tensor(weights,dtype=torch.float)
+    weights = torch.tensor(weights,dtype=torch.float).to(device)
     criterion = criterion(weight=weights,
                           ignore_index=-1, 
                           size_average=None
                           )    
     
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
     for idx, net in enumerate(networks):
         print(f'{network}: {idx+1}/{len(networks)}')
         optimizer = getattr(optim, model_parameters.optimizer)
         optimizer = optimizer(net.parameters(), lr = model_parameters.learning_rate)
+        net = net.to(device)
         net, results = train_segmentation(
             net,
             train_loader,

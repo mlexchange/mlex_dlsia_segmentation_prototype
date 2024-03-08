@@ -344,6 +344,7 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
             batch = batch.to(device)
             # Input passed through networks here
             patch_output = net(batch)
+            patch_output = patch_output.cpu()
             stitched_result, weights = qlty_object.stitch(patch_output)
             # Individual output passed through argmax to get predictions
             seg_batch = torch.argmax(stitched_result.cpu(), dim=1).numpy().astype(np.int8)
