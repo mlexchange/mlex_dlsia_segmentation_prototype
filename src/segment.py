@@ -1,14 +1,13 @@
 import  argparse
 import  glob
-from    network             import  load_network, baggin_smsnet_ensemble
-from    parameters          import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters, SMSNetEnsembleParameters
-from    qlty.qlty2D         import  NCYXQuilt
-from    seg_utils           import  custom_collate, segment
-from    tiled_dataset       import  TiledDataset
+from    network                 import  load_network, baggin_smsnet_ensemble
+from    parameters              import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters, SMSNetEnsembleParameters
+from    seg_utils               import  custom_collate, segment
+from    tiled_dataset           import  TiledDataset
 import  torch
-from    torch.utils.data    import  DataLoader
-from    torchvision         import  transforms
-from    utils               import  save_seg_to_tiled
+from    torch.utils.data        import  DataLoader
+from    torchvision             import  transforms
+from    utils                   import  allocate_array_space
 import  yaml
 
 
@@ -63,21 +62,28 @@ if __name__ == '__main__':
     inference_loader = DataLoader(dataset, **inference_loader_params, collate_fn=custom_collate)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f'Inference will be processed on: {device}')
 
     # Load Network
     if network == 'SMSNetEnsemble':
-        net = baggin_smsnet_ensemble(io_parameters.uid)
+        net = baggin_smsnet_ensemble(io_parameters.uid_retrieve)
     else:
-        net_files = glob.glob(f"{io_parameters.uid}/*.pt")
+        net_files = glob.glob(f"{io_parameters.uid_retrieve}/*.pt")
         net = load_network(network, net_files[0])
 
-    # Start segmentation
-    seg_result = segment(net, device, inference_loader, dataset.qlty_object)
-    
-    seg_result_uri, seg_result_metadata = save_seg_to_tiled(seg_result, 
-                                                            dataset,
-                                                            io_parameters.seg_tiled_uri,
-                                                            io_parameters.seg_tiled_api_key,
-                                                            io_parameters.uid, 
-                                                            network
-                                                            )
+    # Allocate Result space in Tiled
+    seg_client = allocate_array_space(tiled_dataset=dataset,
+                                      seg_tiled_uri=io_parameters.seg_tiled_uri,
+                                      seg_tiled_api_key=io_parameters.seg_tiled_api_key,
+                                      uid=io_parameters.uid_save,
+                                      model=network,
+                                      array_name='seg_result',
+                                      )
+    print(f'Result space allocated in Tiled and segmentation will be saved in {seg_client.uri}.')
+
+    # Start segmentation and save frame by frame
+    frame_count = segment(net, device, inference_loader, dataset.qlty_object, seg_client)
+
+    assert frame_count == len(dataset)
+
+    print('Segmentation completed.')
