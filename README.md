@@ -1,57 +1,98 @@
 # mlex_dlsia_segmentation_prototype
 
-This pipeline is built using DLSIA Package to run segmentation tasks for the High_Res Segmentation Application. 
+This pipeline is developed using DLSIA Package to run segmentation tasks for the High_Res Segmentation Application. 
 
-Primary goal is to make this compatible with the updated segmentation application as a paperation for the incoming Diamond Beamtime.
+The primary goal is to make this compatible with the updated segmentation application as a paperation for the incoming Diamond Beamtime in March 2024.
 
 ## Feature Highlights
 
-- Reading data and mask iput directly from Tiled Server
-- Saving segmentation results back to Tiled Server
-- Different Neural Network choices (MSDNet, TUNet, TUNet3+)
+- Reading data and mask iput directly from a Tiled Server
+- Applying qlty cropping of frame to patches to ensure better training performance
+- Using DVC Live to track training loss and metrics
+- Saving segmentation results back to Tiled Server on-the-fly during inference
+- An expansion of Neural Network choices to sync with the current DLSIA package (MSDNet, TUNet, TUNet3+, SMSNet Ensemble)
 
 ## To Test
 
-### Set Up Local Tiled Server
+### 1. Set Up Local Tiled Server
 
-This step is recommended in order to keep the Public Tiled Server clean for writing tests, as right now there is lack of good way or deleting containers rather than database modification.
+- This step is recommended in order to keep the Public Tiled Server clean for writing-related tests.
 
-### Request Public Tiled URI for Data and Masks
+### 2. Request Public Tiled URI for Data and Masks
 
-Please reach out to MLExchange Team.
+- Please reach out to MLExchange Team for details.
 
-### Installation
+### 3. Installation
 
-1. Git Clone the repository. 
+- Git Clone the repository. 
 
-2. Navigate to the repository, then activate a new conda environment (recommended).
+ - Navigate to the repository, then create a new conda environment (recommended).
 
-3. Install packages.
+- Activate the conda environment.
+
+- Install packages using:
 
 ```
 pip install -r requirements.txt
 ```
-
-4. Set environment variables via a `.env` file to configure a connection to the Tiled server.
-
-```
-RECON_TILED_URI = https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
-RECON_TILED_API_KEY = <key-provided-on-request>
-MASK_TILED_URI = https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/seg-partial-rec20190524_085542_clay_testZMQ_8bit/seg-partial-20190524_085542_clay_testZMQ_
-MASK_TILED_API_KEY = <key-provided-on-request>
-SEG_TILED_URI = <Local Tiled Server URI> (for example: http://0.0.0.0:8888)
-SEG_TILED_API_KEY = <Local Tiled API Key>
+- Initialize DVC for loss and metric saving, this only needs to be done once with your github account:
 
 ```
+git config --global [user.name](http://user.name/) "John Doe"
 
-5. Open a Terminal and use pre-build commands from Makefile for testing:
+git config --global user.email "johndoe@email.com"
+```
+
+Note: this step is only for dvc related repo and directory initialization, it will not enable auto-commits back to the GitHub repo or dvc repo. This feature will be discussed and potentially introduced in the future. 
+
+### 4. Parameter Initialization 
+
+- Navigate to directory "example_yamls/".
+- Open one of the example yaml files for the model of interest you would like to test on.
+- Inside the yaml file, change parameters according to you needs. 
+- `uid_save`: where you want to save the model and metric report.
+- `uid_retrieve`: where you want to retrieve your trained model.
+- Model parameters: we have pre-filled some values for speed testing, those are not meant for default settings. For more information regarding recommanded values for each neural network, please refer to [this](https://dlsia.readthedocs.io/en/latest/tutorialLinks/segmentation_MSDNet_TUNet_TUNet3plus.html) example in the DLSIA documentation.   
+
+### 5. Model Training
+
+- We have prepared some make commands ready to be used in the make file. With the model name in your mind, go back to terminal and type
 
 ```
-make test_tunet
+make train_<your model name>
 ```
+
+For example, if you pre-filled values for a tunet yaml file: 
+```
+make train_tunet
+```
+For exact commands to run the source code, please refer to the content of the Makefile.
+
+### 6. Running Inference
+
+- Once a trained model has been saved, you can run a quick inference to preview the segmentation result only on frames that have labeling information from masks. To do so:
+
+```
+make segment_tunet
+```
+
+- The segmented slices will be saved directly into the Tiled Server (`seg_tiled_uri`) you provided in the yaml file. If you are satisfiled with the segmentation result, you can run a full inference of the whole image stack by doing:
+
+- Go back to your example_yaml file.
+- Set `mask_tiled_uri` and `mask_tiled_api_key` to `null` (this is `None` in yaml), or simply comment out these two entries.
+- Set your `uid_save` to be a different one if you have previously run a quick inference under the same uid.
+- Save your yaml file.
+- Go back to terminal and use the same make command from above:
+
+```
+make segment_tunet
+```
+
+Note: depending on the data size, this may take for a while.
+
 
 # Copyright
-MLExchange Copyright (c) 2023, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy). All rights reserved.
+MLExchange Copyright (c) 2024, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy). All rights reserved.
 
 If you have questions about your rights to use or distribute this software, please contact Berkeley Lab's Intellectual Property Office at IPO@lbl.gov.
 
