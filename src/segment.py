@@ -62,6 +62,7 @@ if __name__ == '__main__':
     inference_loader = DataLoader(dataset, **inference_loader_params, collate_fn=custom_collate)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f'Inference will be processed on: {device}')
 
     # Load Network
     if network == 'SMSNetEnsemble':
