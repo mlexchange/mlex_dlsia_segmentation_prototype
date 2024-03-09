@@ -2,7 +2,7 @@ import os
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 import numpy as np
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 # Create directory
 def create_directory(path):
@@ -17,7 +17,10 @@ def ensure_parent_containers(tiled_uri, tiled_api_key):
     path = parsed_url.path
     # Splitting path into parts
     path_parts = path.split('/')[1:]  # Split and remove the first empty element
-    tiled_root = f'{parsed_url.scheme}://{parsed_url.netloc}/{path_parts[0]}/{path_parts[1]}/{path_parts[2]}'
+    root_path = '/'.join(path_parts[:3])
+    tiled_root = urlunparse((parsed_url.scheme, parsed_url.netloc, root_path, 
+                             parsed_url.params, parsed_url.query, parsed_url.fragment))
+    
     last_container = from_uri(tiled_root, api_key=tiled_api_key)
 
     for part in path_parts:
