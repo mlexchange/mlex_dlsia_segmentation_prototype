@@ -2,6 +2,7 @@ import os
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 import numpy as np
+from urllib.parse import urlparse
 
 # Create directory
 def create_directory(path):
@@ -10,6 +11,21 @@ def create_directory(path):
         print(f"Local directory '{path}' created.")
     else:
         print(f"Local directory '{path}' already exsists.")
+
+def ensure_parent_containers(tiled_uri, tiled_api_key):
+    parsed_url = urlparse(tiled_uri)
+    path = parsed_url.path
+    # Splitting path into parts
+    path_parts = path.split('/')[1:]  # Split and remove the first empty element
+    tiled_root = f'{parsed_url.scheme}://{parsed_url.netloc}/{path_parts[0]}/{path_parts[1]}/{path_parts[2]}'
+    last_container = from_uri(tiled_root, api_key=tiled_api_key)
+
+    for part in path_parts:
+        if part in last_container.keys():
+            last_container = last_container[part]
+        else:
+            last_container = last_container.create_container(key=part)
+    return last_container
 
 
 # Tiled Saving
@@ -22,7 +38,11 @@ def allocate_array_space(
                       array_name,
                       ):
     
-    last_container = from_uri(seg_tiled_uri, api_key=seg_tiled_api_key)
+    
+    last_container = ensure_parent_containers(seg_tiled_uri, seg_tiled_api_key)
+    
+    assert uid not in last_container.keys(), f'uid_save: {uid} already existed in Tiled Server'
+
     last_container = last_container.create_container(key=uid)
     array_shape = tiled_dataset.mask_client.shape if tiled_dataset.mask_client else tiled_dataset.data_client.shape
     structure = ArrayStructure.from_array(np.zeros(array_shape,dtype=np.int8))
