@@ -258,6 +258,12 @@ def train_segmentation(
                 live.next_step()
 
             print(f'Epoch: {epoch}')
+            
+            # Note: This is a very temporary solution to address the single frame mask case.
+            if validationloader is None:
+                F1_val_micro = None
+                F1_val_macro = None
+                
             table = save_loss(
                 validationloader,
                 savepath,
