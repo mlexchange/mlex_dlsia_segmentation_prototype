@@ -3,13 +3,13 @@
 # I/O
 io_parameters:
   data_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
-  data_tiled_api_key: 
+  data_tiled_api_key:
   mask_tiled_uri: https://tiled-seg.als.lbl.gov/api/v1/metadata/mlex_store/mlex_segm_user/rec20190524_085542_clay_testZMQ_8bit/a558f7b1773855b9453bf6c91079699d
-  mask_tiled_api_key: 
+  mask_tiled_api_key:
   seg_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/rec20190524_085542_clay_testZMQ_8bit/results
-  seg_tiled_api_key: 
-  uid_save: 
-  uid_retrieve: 
+  seg_tiled_api_key:
+  uid_save:
+  uid_retrieve:
 
 model_parameters:
   network: "SMSNetEnsemble"
@@ -26,7 +26,7 @@ model_parameters:
   qlty_window: 50
   qlty_step: 30
   qlty_border: 3
-  
+
   shuffle_train: True
   batch_size_train: 1
 
