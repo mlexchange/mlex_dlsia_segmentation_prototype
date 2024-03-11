@@ -23,7 +23,6 @@ if __name__ == '__main__':
     # Validate and load I/O related parameters
     io_parameters = parameters['io_parameters']
     io_parameters = IOParameters(**io_parameters)
-
     # Check whether mask_uri has been provided as this is a requirement for training.
     assert io_parameters.mask_tiled_uri, 'Mask URI not provided for training.'
 
@@ -60,7 +59,7 @@ if __name__ == '__main__':
         transform=transforms.ToTensor()
         )
     train_loader, val_loader = train_val_split(dataset, model_parameters)
-      
+
     # Build network
     networks = build_network(
         network=network,
@@ -70,6 +69,8 @@ if __name__ == '__main__':
         )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"      MEMORY ALLOCATED   {torch.cuda.memory_allocated(0)}")
+    torch.cuda.empty_cache()
     print(f'Training will be processed on: {device}')
 
     # Define criterion and optimizer
@@ -81,7 +82,6 @@ if __name__ == '__main__':
                           ignore_index=-1, 
                           size_average=None
                           )    
-    
     for idx, net in enumerate(networks):
         print(f'{network}: {idx+1}/{len(networks)}')
         optimizer = getattr(optim, model_parameters.optimizer)
@@ -104,6 +104,7 @@ if __name__ == '__main__':
             )
         # Save network parameters
         model_params_path = f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
+        print(f"!!!!!!!   model_params_path {model_params_path}")
         net.save_network_parameters(model_params_path)
         # Clear out unnecessary variables from device memory
         torch.cuda.empty_cache()

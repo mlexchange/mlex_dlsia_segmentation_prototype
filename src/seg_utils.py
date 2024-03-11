@@ -28,7 +28,6 @@ def train_val_split(dataset, parameters):
 
     Caution: the random_split does not taken class balance into account. Future upgrades for that direction would requrie sampler from torch.
     '''
-
     # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
     train_loader_params = {'batch_size': parameters.batch_size_train,
                         'shuffle': parameters.shuffle_train}
@@ -121,7 +120,6 @@ def train_segmentation(
     train_loss = []
     F1_train_trace_micro = []
     F1_train_trace_macro = []
-
     # Skip validation steps if False or None loaded
     if validationloader is False:
         validationloader = None
@@ -130,7 +128,7 @@ def train_segmentation(
         F1_validation_trace_micro = []
         F1_validation_trace_macro = []
 
-    best_score = 1e10
+    best_score = 0 # will be set in the first epoch
     best_index = 0
     best_state_dict = None
 
@@ -141,6 +139,7 @@ def train_segmentation(
     losses = pd.DataFrame()
     with Live(savepath, report="html") as live:
         for epoch in range(NUM_EPOCHS):
+            print(f"*****  memory allocated at epoch {epoch} is {torch.cuda.memory_allocated(0)}")
             running_train_loss = 0.0
             running_F1_train_micro = 0.0
             running_F1_train_macro = 0.0
@@ -240,7 +239,7 @@ def train_segmentation(
             train_loss.append(loss)
             F1_train_trace_micro.append(F1_micro)
             F1_train_trace_macro.append(F1_macro)
-
+            val_loss = None
             if validationloader is not None:
                 val_loss = running_validation_loss / len(validationloader)
                 F1_val_micro = running_F1_validation_micro / len(validationloader)
@@ -249,7 +248,7 @@ def train_segmentation(
                 F1_validation_trace_micro.append(F1_val_micro)
                 F1_validation_trace_macro.append(F1_val_macro)
 
-                live.log_metric("train/loss", loss)
+                live.log_metric("train/nes", loss)
                 live.log_metric("train/F1_micro", F1_micro)
                 live.log_metric("train/F1_macro", F1_macro)
                 live.log_metric("val/loss", val_loss)
@@ -298,7 +297,15 @@ def train_segmentation(
                             f'Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}')
                         logging.info(
                             f'   Training Loss: {loss:.4e} | Micro Training F1: {F1_micro:.4f} | Macro Training F1: {F1_macro:.4f}')
-
+            
+            
+            if epoch == 0:
+                best_state_dict = net.state_dict()
+                if validationloader is not None:
+                    best_score = val_loss
+                else:
+                    best_score = loss
+            
             if validationloader is not None:
                 if val_loss < best_score:
                     best_state_dict = net.state_dict()
@@ -308,13 +315,12 @@ def train_segmentation(
                 if loss < best_score:
                     best_state_dict = net.state_dict()
                     best_index = epoch
-                    best_score = loss
+                    best_score = loss             
 
                 if savepath is not None:
                     torch.save(best_state_dict, savepath + '/net_best')
                     logging.info('Best network found and saved')
                     logging.info('')
-
             if savepath is not None:
                 if np.mod(epoch + 1, saveevery) == 0:
                     torch.save(net.state_dict(), savepath + '/net_checkpoint')
@@ -322,9 +328,9 @@ def train_segmentation(
                     logging.info('')
 
     if validationloader is None:
-        validation_loss = None
-        F1_validation_trace_micro = None
-        F1_validation_trace_macro = None
+        validation_loss = []
+        F1_validation_trace_micro = []
+        F1_validation_trace_macro = []
 
     results = {"Training loss": train_loss,
                "Validation loss": validation_loss,
@@ -333,7 +339,6 @@ def train_segmentation(
                "F1 validation micro": F1_validation_trace_micro,
                "F1 validation macro": F1_validation_trace_macro,
                "Best model index": best_index}
-
     net.load_state_dict(best_state_dict)
     losses.to_parquet(savepath+'/losses.parquet', engine='pyarrow')
     return net, results
