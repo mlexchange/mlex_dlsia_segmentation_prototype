@@ -1,4 +1,4 @@
-name: test-and-lint
+name: format-and-lint
 
 on: pull_request
 
@@ -29,6 +29,3 @@ jobs:
       - name: Test formatting with black
         run: |
           black . --check
-      - name: Run pytest
-        run: |
-          python -m pytest
