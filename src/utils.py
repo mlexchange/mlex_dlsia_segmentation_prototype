@@ -23,7 +23,8 @@ def ensure_parent_containers(tiled_uri, tiled_api_key):
     
     last_container = from_uri(tiled_root, api_key=tiled_api_key)
 
-    for part in path_parts:
+    container_parts = path_parts[3:]
+    for part in container_parts:
         if part in last_container.keys():
             last_container = last_container[part]
         else:
