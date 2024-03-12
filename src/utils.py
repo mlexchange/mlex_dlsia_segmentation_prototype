@@ -23,7 +23,7 @@ def ensure_parent_containers(tiled_uri, tiled_api_key):
     
     last_container = from_uri(tiled_root, api_key=tiled_api_key)
 
-    container_parts = path_parts[3:]
+    container_parts = path_parts[3:] # Ignoring the api/v1/metadata as being covered above during authentication
     for part in container_parts:
         if part in last_container.keys():
             last_container = last_container[part]
