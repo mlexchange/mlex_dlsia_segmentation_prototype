@@ -1,7 +1,8 @@
-from    qlty            import  cleanup
-from    qlty.qlty2D     import  NCYXQuilt
-from    tiled.client    import  from_uri
-import  torch
+import torch
+from qlty import cleanup
+from qlty.qlty2D import NCYXQuilt
+from tiled.client import from_uri
+
 
 class TiledDataset(torch.utils.data.Dataset):
     def __init__(
@@ -16,7 +17,7 @@ class TiledDataset(torch.utils.data.Dataset):
             qlty_step=30,
             qlty_border=3,
             transform=None):
-        '''
+        """
         Args:
             data_tiled_uri:      str,    Tiled URI of the input data
             data_tiled_api_key:  str,    Tiled API key for input data access
@@ -30,14 +31,18 @@ class TiledDataset(torch.utils.data.Dataset):
 
         Return:
             ml_data:        tuple, (data_tensor, mask_tensor)
-        '''
+        """
         self.data_tiled_uri = data_tiled_uri
         self.data_client = from_uri(data_tiled_uri, api_key=data_tiled_api_key)
         self.mask_tiled_uri = mask_tiled_uri
         if mask_tiled_uri:
-            self.mask_client_one_up = from_uri(mask_tiled_uri, api_key=mask_tiled_api_key)
-            self.mask_client = self.mask_client_one_up['mask']
-            self.mask_idx = [int(idx) for idx in self.mask_client_one_up.metadata['mask_idx']]
+            self.mask_client_one_up = from_uri(
+                mask_tiled_uri, api_key=mask_tiled_api_key
+            )
+            self.mask_client = self.mask_client_one_up["mask"]
+            self.mask_idx = [
+                int(idx) for idx in self.mask_client_one_up.metadata["mask_idx"]
+            ]
         else:
             self.mask_client = None
             self.mask_idx = None
@@ -60,7 +65,7 @@ class TiledDataset(torch.utils.data.Dataset):
             return len(self.data_client)
 
     def __getitem__(self, idx):
-        if self.is_training:    
+        if self.is_training:
             data = self.data_client[self.mask_idx[idx],]
             mask = self.mask_client[idx,]
             

@@ -1,3 +1,4 @@
+
 import  argparse
 import  glob
 from    network                 import  load_network, baggin_smsnet_ensemble
@@ -13,36 +14,37 @@ from    qlty.qlty2D     import  NCYXQuilt
 
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('yaml_path', type=str, help='path of yaml file for parameters')
+    parser.add_argument("yaml_path", type=str, help="path of yaml file for parameters")
     args = parser.parse_args()
 
     # Open the YAML file for all parameters
-    with open(args.yaml_path, 'r') as file:
+    with open(args.yaml_path, "r") as file:
         # Load parameters
         parameters = yaml.safe_load(file)
 
     # Validate and load I/O related parameters
-    io_parameters = parameters['io_parameters']
+    io_parameters = parameters["io_parameters"]
     io_parameters = IOParameters(**io_parameters)
 
-    # Detect which model we have, then load corresponding parameters 
-    raw_parameters = parameters['model_parameters']
-    network = raw_parameters['network']
+    # Detect which model we have, then load corresponding parameters
+    raw_parameters = parameters["model_parameters"]
+    network = raw_parameters["network"]
 
     model_parameters = None
-    if network == 'MSDNet':
+    if network == "MSDNet":
         model_parameters = MSDNetParameters(**raw_parameters)
-    elif network == 'TUNet':
+    elif network == "TUNet":
         model_parameters = TUNetParameters(**raw_parameters)
-    elif network == 'TUNet3+':
+    elif network == "TUNet3+":
         model_parameters = TUNet3PlusParameters(**raw_parameters)
-    elif network == 'SMSNetEnsemble':
+    elif network == "SMSNetEnsemble":
         model_parameters = SMSNetEnsembleParameters(**raw_parameters)
-    
+
     assert model_parameters, f"Received Unsupported Network: {network}"
-    
-    print('Parameters loaded successfully.')
+
+    print("Parameters loaded successfully.")
 
     dataset = TiledDataset(
         data_tiled_uri=io_parameters.data_tiled_uri,
@@ -65,27 +67,30 @@ if __name__ == '__main__':
                            border_weight=0.2,
                           )
 
-    
-
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    torch.cuda.empty_cache()
     print(f'Inference will be processed on: {device}')
 
     # Load Network
-    if network == 'SMSNetEnsemble':
+    if network == "SMSNetEnsemble":
         net = baggin_smsnet_ensemble(io_parameters.uid_retrieve)
     else:
         net_files = glob.glob(f"{io_parameters.uid_retrieve}/*.pt")
         net = load_network(network, net_files[0])
 
     # Allocate Result space in Tiled
-    seg_client = allocate_array_space(tiled_dataset=dataset,
-                                      seg_tiled_uri=io_parameters.seg_tiled_uri,
-                                      seg_tiled_api_key=io_parameters.seg_tiled_api_key,
-                                      uid=io_parameters.uid_save,
-                                      model=network,
-                                      array_name='seg_result',
-                                      )
-    print(f'Result space allocated in Tiled and segmentation will be saved in {seg_client.uri}.')
+    seg_client = allocate_array_space(
+        tiled_dataset=dataset,
+        seg_tiled_uri=io_parameters.seg_tiled_uri,
+        seg_tiled_api_key=io_parameters.seg_tiled_api_key,
+        uid=io_parameters.uid_save,
+        model=network,
+        array_name="seg_result",
+    )
+    print(
+        f"Result space allocated in Tiled and segmentation will be saved in {seg_client.uri}."
+    )
 
     for idx in range(len(dataset)):
         seg_result = crop_seg_save(net=net,
@@ -105,5 +110,3 @@ if __name__ == '__main__':
 
     # # # Start segmentation and save frame by frame
     # # frame_count = segment(net, device, inference_loader, dataset.qlty_object, seg_client)
-
-
