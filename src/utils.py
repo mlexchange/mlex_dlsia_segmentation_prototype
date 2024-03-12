@@ -34,7 +34,9 @@ def ensure_parent_containers(tiled_uri, tiled_api_key):
 
     last_container = from_uri(tiled_root, api_key=tiled_api_key)
 
-    container_parts = path_parts[3:] # Ignoring the api/v1/metadata as being covered above during authentication
+    container_parts = path_parts[
+        3:
+    ]  # Ignoring the api/v1/metadata as being covered above during authentication
     for part in container_parts:
         if part in last_container.keys():
             last_container = last_container[part]
@@ -56,8 +58,9 @@ def allocate_array_space(
     last_container = ensure_parent_containers(seg_tiled_uri, seg_tiled_api_key)
 
     print(f"@@@@@@@@@@    last_container   {last_container.uri}")
-    assert uid not in last_container.keys(), f'uid_save: {uid} already existed in Tiled Server'
-
+    assert (
+        uid not in last_container.keys()
+    ), f"uid_save: {uid} already existed in Tiled Server"
 
     last_container = last_container.create_container(key=uid)
 
@@ -74,13 +77,13 @@ def allocate_array_space(
     # For now, only save image 1 by 1 regardless of the batch_size_inference.
     structure.chunks = ((1,) * array_shape[0], (array_shape[1],), (array_shape[2],))
 
-    metadata={
-        'data_uri': tiled_dataset.data_tiled_uri,
-        'mask_uri': tiled_dataset.mask_tiled_uri, 
-        'mask_idx': tiled_dataset.mask_idx,
-        'uid': uid,
-        'model': model, 
-        }
+    metadata = {
+        "data_uri": tiled_dataset.data_tiled_uri,
+        "mask_uri": tiled_dataset.mask_tiled_uri,
+        "mask_idx": tiled_dataset.mask_idx,
+        "uid": uid,
+        "model": model,
+    }
 
     array_client = last_container.new(
         structure_family="array",

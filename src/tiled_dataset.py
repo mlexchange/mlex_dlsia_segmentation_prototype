@@ -6,17 +6,18 @@ from tiled.client import from_uri
 
 class TiledDataset(torch.utils.data.Dataset):
     def __init__(
-            self,
-            data_tiled_uri,
-            data_tiled_api_key=None,
-            mask_tiled_uri=None,
-            mask_tiled_api_key=None,
-            is_training=None,
-            using_qlty=False,
-            qlty_window=50,
-            qlty_step=30,
-            qlty_border=3,
-            transform=None):
+        self,
+        data_tiled_uri,
+        data_tiled_api_key=None,
+        mask_tiled_uri=None,
+        mask_tiled_api_key=None,
+        is_training=None,
+        using_qlty=False,
+        qlty_window=50,
+        qlty_step=30,
+        qlty_border=3,
+        transform=None,
+    ):
         """
         Args:
             data_tiled_uri:      str,    Tiled URI of the input data
@@ -49,12 +50,13 @@ class TiledDataset(torch.utils.data.Dataset):
         self.transform = transform
         if using_qlty:
             # this object handles unstitching and stitching
-            self.qlty_object = NCYXQuilt(X=self.data_client.shape[-1], 
-                                     Y=self.data_client.shape[-2],
-                                     window = (qlty_window, qlty_window),
-                                     step = (qlty_step, qlty_step),
-                                     border = (qlty_border, qlty_border)
-                                     )
+            self.qlty_object = NCYXQuilt(
+                X=self.data_client.shape[-1],
+                Y=self.data_client.shape[-2],
+                window=(qlty_window, qlty_window),
+                step=(qlty_step, qlty_step),
+                border=(qlty_border, qlty_border),
+            )
         self.is_training = is_training
         self.using_qlty = using_qlty
 
@@ -68,24 +70,28 @@ class TiledDataset(torch.utils.data.Dataset):
         if self.is_training:
             data = self.data_client[self.mask_idx[idx],]
             mask = self.mask_client[idx,]
-            
+
             if self.using_qlty:
                 # Change to 4d array for qlty requirement
                 data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
-                # Change to 3d array for qlty requirement of labels 
+                # Change to 3d array for qlty requirement of labels
                 mask = torch.from_numpy(mask).unsqueeze(0)
-                data_patches, mask_patches = self.qlty_object.unstitch_data_pair(data, mask)
+                data_patches, mask_patches = self.qlty_object.unstitch_data_pair(
+                    data, mask
+                )
                 border_tensor = self.qlty_object.border_tensor()
-                clean_data_patches, clean_mask_patches, _ = cleanup.weed_sparse_classification_training_pairs_2D(
-                                                            data_patches, 
-                                                            mask_patches, 
-                                                            missing_label=-1, 
-                                                            border_tensor=border_tensor
-                                                            )
+                clean_data_patches, clean_mask_patches, _ = (
+                    cleanup.weed_sparse_classification_training_pairs_2D(
+                        data_patches,
+                        mask_patches,
+                        missing_label=-1,
+                        border_tensor=border_tensor,
+                    )
+                )
                 return clean_data_patches, clean_mask_patches
             else:
                 return data, mask
-        
+
         else:
             if self.mask_client:
                 data = self.data_client[self.mask_idx[idx],]
@@ -96,7 +102,7 @@ class TiledDataset(torch.utils.data.Dataset):
                     return data_patches
                 else:
                     return data
-            
+
             else:
                 data = self.data_client[idx,]
                 if self.using_qlty:

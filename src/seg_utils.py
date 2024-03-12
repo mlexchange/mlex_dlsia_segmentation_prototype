@@ -3,14 +3,11 @@ import logging
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import TensorDataset, DataLoader, random_split
-from torch.utils.data.dataloader import default_collate
 from dlsia.core.train_scripts import segmentation_metrics
-from    qlty            import  cleanup
-from    qlty.qlty2D     import  NCYXQuilt
-import logging
 from dvclive import Live
-from torch.utils.data import DataLoader, random_split
+from qlty import cleanup
+from qlty.qlty2D import NCYXQuilt
+from torch.utils.data import DataLoader, TensorDataset, random_split
 from torch.utils.data.dataloader import default_collate
 
 
@@ -67,50 +64,56 @@ def train_val_split(dataset, parameters):
         )
     return train_loader, val_loader
 
+
 def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
     # Standardization
-    images = images / 255 # TODO: Revisit the best normalization option we can do, thinking about transferring between sets and train-inference.
+    images = (
+        images / 255
+    )  # TODO: Revisit the best normalization option we can do, thinking about transferring between sets and train-inference.
     images = torch.from_numpy(images)
     masks = torch.from_numpy(masks)
-   
+
     qlty_window = parameters.qlty_window
     qlty_step = parameters.qlty_step
     qlty_border = parameters.qlty_border
-    
+
     if images.ndim == 3:
         images = images.unsqueeze(1)
     elif images.ndim == 2:
         images = images.unsqueeze(0).unsqueeze(0)
-    
+
     if masks.ndim == 2:
         masks = masks.unsqueeze(0)
 
     qlty_object = NCYXQuilt(
         X=images.shape[-1],
         Y=images.shape[-2],
-        window = (qlty_window, qlty_window),
-        step = (qlty_step, qlty_step),
-        border = (qlty_border, qlty_border),
-        border_weight = qlty_border_weight,
-        )
+        window=(qlty_window, qlty_window),
+        step=(qlty_step, qlty_step),
+        border=(qlty_border, qlty_border),
+        border_weight=qlty_border_weight,
+    )
     patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
     # Clean up unlabeled patches
 
-    patched_images, patched_masks, _ = cleanup.weed_sparse_classification_training_pairs_2D(
-                                    patched_images, 
-                                    patched_masks, 
-                                    missing_label=-1, 
-                                    border_tensor=qlty_object.border_tensor(),
-                                    )
+    patched_images, patched_masks, _ = (
+        cleanup.weed_sparse_classification_training_pairs_2D(
+            patched_images,
+            patched_masks,
+            missing_label=-1,
+            border_tensor=qlty_object.border_tensor(),
+        )
+    )
     dataset = TensorDataset(patched_images, patched_masks)
     # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
-    train_loader_params = {'batch_size': parameters.batch_size_train,
-                        'shuffle': parameters.shuffle_train}
-    val_loader_params = {'batch_size': parameters.batch_size_val,
-                        'shuffle': False}
-    
+    train_loader_params = {
+        "batch_size": parameters.batch_size_train,
+        "shuffle": parameters.shuffle_train,
+    }
+    val_loader_params = {"batch_size": parameters.batch_size_val, "shuffle": False}
+
     val_pct = parameters.val_pct
-    val_size = max(int(val_pct*len(dataset)), 1) if len(dataset) > 1 else 0
+    val_size = max(int(val_pct * len(dataset)), 1) if len(dataset) > 1 else 0
     if val_size == 0:
         train_loader = DataLoader(dataset, **train_loader_params)
         val_loader = None
@@ -120,6 +123,7 @@ def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
         train_loader = DataLoader(train_data, **train_loader_params)
         val_loader = DataLoader(val_data, **val_loader_params)
     return train_loader, val_loader
+
 
 # Save Loss
 def save_loss(
@@ -206,7 +210,7 @@ def train_segmentation(
         F1_validation_trace_micro = []
         F1_validation_trace_macro = []
 
-    best_score = 0 # will be set in the first epoch
+    best_score = 0  # will be set in the first epoch
     best_index = 0
     best_state_dict = None
 
@@ -217,7 +221,9 @@ def train_segmentation(
     losses = pd.DataFrame()
     with Live(savepath, report="html") as live:
         for epoch in range(NUM_EPOCHS):
-            print(f"*****  memory allocated at epoch {epoch} is {torch.cuda.memory_allocated(0)}")
+            print(
+                f"*****  memory allocated at epoch {epoch} is {torch.cuda.memory_allocated(0)}"
+            )
             running_train_loss = 0.0
             running_F1_train_micro = 0.0
             running_F1_train_macro = 0.0
@@ -379,17 +385,17 @@ def train_segmentation(
                             f"Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}"
                         )
                         logging.info(
-                          
-                            f'   Training Loss: {loss:.4e} | Micro Training F1: {F1_micro:.4f} | Macro Training F1: {F1_macro:.4f}')
-            
-            
+                            f"   Training Loss: {loss:.4e} | Micro Training F1: {F1_micro:.4f} "
+                            + "| Macro Training F1: {F1_macro:.4f}"
+                        )
+
             if epoch == 0:
                 best_state_dict = net.state_dict()
                 if validationloader is not None:
                     best_score = val_loss
                 else:
                     best_score = loss
-            
+
             if validationloader is not None:
                 if val_loss < best_score:
                     best_state_dict = net.state_dict()
@@ -399,7 +405,7 @@ def train_segmentation(
                 if loss < best_score:
                     best_state_dict = net.state_dict()
                     best_index = epoch
-                    best_score = loss             
+                    best_score = loss
 
                 if savepath is not None:
 
@@ -460,20 +466,27 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
 
     return frame_number
 
-def crop_seg_save(net, device, image, qlty_object, parameters, tiled_client, frame_idx):    
-    assert image.ndim==2
+
+def crop_seg_save(net, device, image, qlty_object, parameters, tiled_client, frame_idx):
+    assert image.ndim == 2
     # Standardization
-    image = image / 255 # TODO: follow the decision of normalization we use in training.
+    image = (
+        image / 255
+    )  # TODO: follow the decision of normalization we use in training.
     image = torch.from_numpy(image)
     image = image.unsqueeze(0).unsqueeze(0)
 
     softmax = torch.nn.Softmax(dim=1)
     # first patch up the image
     patches = qlty_object.unstitch(image)
-        
-    inference_loader = DataLoader(TensorDataset(patches), shuffle=False, batch_size=parameters.batch_size_inference)
-    
-    net.eval().to(device)   # send network to GPU
+
+    inference_loader = DataLoader(
+        TensorDataset(patches),
+        shuffle=False,
+        batch_size=parameters.batch_size_inference,
+    )
+
+    net.eval().to(device)  # send network to GPU
     results = []
     for batch in inference_loader:
         with torch.no_grad():
@@ -486,6 +499,6 @@ def crop_seg_save(net, device, image, qlty_object, parameters, tiled_client, fra
     seg_result = torch.argmax(stitched_result, dim=1).numpy().astype(np.int8)
     # Write back to Tiled for the single frame
     # TODO: Explore the use of threading to speed up this process.
-    tiled_client.write_block(seg_result, block=(frame_idx,0,0))
-    print(f'Frame {frame_idx+1} result saved to Tiled')
+    tiled_client.write_block(seg_result, block=(frame_idx, 0, 0))
+    print(f"Frame {frame_idx+1} result saved to Tiled")
     return seg_result

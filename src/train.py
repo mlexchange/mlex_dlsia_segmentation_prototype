@@ -1,4 +1,5 @@
 import argparse
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,7 +15,7 @@ from parameters import (
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from seg_utils import crop_split_load, train_segmentation, train_val_split
+from seg_utils import crop_split_load, train_segmentation
 from tiled_dataset import TiledDataset
 from utils import create_directory
 
@@ -65,13 +66,13 @@ if __name__ == "__main__":
         qlty_window=model_parameters.qlty_window,
         qlty_step=model_parameters.qlty_step,
         qlty_border=model_parameters.qlty_border,
-        transform=transforms.ToTensor()
-        )
+        transform=transforms.ToTensor(),
+    )
 
     # Load all labeled data and masks into memory
     data = dataset.data_client[dataset.mask_idx]
     mask = np.array(dataset.mask_client)
-    
+
     # train_loader, val_loader = train_val_split(dataset, model_parameters)
     train_loader, val_loader = crop_split_load(data, mask, model_parameters)
 
@@ -84,22 +85,18 @@ if __name__ == "__main__":
     )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
+
     print(f"      MEMORY ALLOCATED   {torch.cuda.memory_allocated(0)}")
     torch.cuda.empty_cache()
-    print(f'Training will be processed on: {device}')
-
+    print(f"Training will be processed on: {device}")
 
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
     # Convert the string to a list of floats
 
-    weights = [float(x) for x in model_parameters.weights.strip('[]').split(',')]
-    weights = torch.tensor(weights,dtype=torch.float).to(device)
-    criterion = criterion(weight=weights,
-                          ignore_index=-1, 
-                          size_average=None
-                          )    
+    weights = [float(x) for x in model_parameters.weights.strip("[]").split(",")]
+    weights = torch.tensor(weights, dtype=torch.float).to(device)
+    criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
 
     for idx, net in enumerate(networks):
         print(f"{network}: {idx+1}/{len(networks)}")
@@ -123,7 +120,9 @@ if __name__ == "__main__":
         )
         # Save network parameters
 
-        model_params_path = f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
+        model_params_path = (
+            f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
+        )
         print(f"!!!!!!!   model_params_path {model_params_path}")
 
         net.save_network_parameters(model_params_path)
