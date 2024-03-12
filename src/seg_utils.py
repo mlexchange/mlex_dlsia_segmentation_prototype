@@ -1,102 +1,122 @@
+import logging
+
 import numpy as np
 import pandas as pd
 import torch
+from dlsia.core.train_scripts import segmentation_metrics
+from dvclive import Live
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.dataloader import default_collate
-from dlsia.core.train_scripts import segmentation_metrics
-import logging
-from dvclive import Live
+
 
 def custom_collate(batch):
     elem = batch[0]
-    first_data = elem[0]
     if isinstance(elem, tuple) and elem[0].ndim == 4:
         data, mask = zip(*batch)
-        concated_data = torch.cat(data, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
+        concated_data = torch.cat(data, dim=0)
+        # concat on the first dim without introducing another dim -> keep in the 4d realm
         concated_mask = torch.cat(mask, dim=0)
         return concated_data, concated_mask
     elif isinstance(elem, torch.Tensor) and elem.ndim == 4:
-        concated_data = torch.cat(batch, dim=0) # concat on the first dim without introducing another dim -> keep in the 4d realm
+        # concat on the first dim without introducing another dim -> keep in the 4d realm
+        concated_data = torch.cat(batch, dim=0)
         return concated_data
     else:  # Fall back to `default_collate` as suggested by PyTorch documentation
         return default_collate(batch)
 
+
 # Train Val Split
 def train_val_split(dataset, parameters):
-    '''
-    This funnction splits the given tiled_dataset object into the train set and val set using torch's built in random_split function.
+    """
+    This funnction splits the given tiled_dataset object
+    into the train set and val set using torch's built in random_split function.
 
-    Caution: the random_split does not taken class balance into account. Future upgrades for that direction would requrie sampler from torch.
-    '''
+
+    Caution: the random_split does not taken class balance into account.
+    Future upgrades for that direction would requrie sampler from torch.
+    """
+
     # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
-    train_loader_params = {'batch_size': parameters.batch_size_train,
-                        'shuffle': parameters.shuffle_train}
-    val_loader_params = {'batch_size': parameters.batch_size_val,
-                        'shuffle': False}
+    train_loader_params = {
+        "batch_size": parameters.batch_size_train,
+        "shuffle": parameters.shuffle_train,
+    }
+    val_loader_params = {"batch_size": parameters.batch_size_val, "shuffle": False}
 
     # Build Dataloaders
     val_pct = parameters.val_pct
-    val_size = max(int(val_pct*len(dataset)), 1) if len(dataset) > 1 else 0
+    val_size = max(int(val_pct * len(dataset)), 1) if len(dataset) > 1 else 0
     if val_size == 0:
-        train_loader = DataLoader(dataset, **train_loader_params, collate_fn=custom_collate)
+        train_loader = DataLoader(
+            dataset, **train_loader_params, collate_fn=custom_collate
+        )
         val_loader = None
     else:
         train_size = len(dataset) - val_size
         train_data, val_data = random_split(dataset, [train_size, val_size])
-        train_loader = DataLoader(train_data, **train_loader_params, collate_fn=custom_collate)
-        val_loader = DataLoader(val_data, **val_loader_params, collate_fn=custom_collate)
+        train_loader = DataLoader(
+            train_data, **train_loader_params, collate_fn=custom_collate
+        )
+        val_loader = DataLoader(
+            val_data, **val_loader_params, collate_fn=custom_collate
+        )
     return train_loader, val_loader
+
 
 # Save Loss
 def save_loss(
-        validationloader,
-        savepath,
-        epoch,
-        loss,
-        F1_micro,
-        F1_macro,
-        val_loss=None,
-        F1_val_micro=None,
-        F1_val_macro=None,
-        ):
+    validationloader,
+    savepath,
+    epoch,
+    loss,
+    F1_micro,
+    F1_macro,
+    val_loss=None,
+    F1_val_micro=None,
+    F1_val_macro=None,
+):
     if validationloader is not None:
         table = pd.DataFrame(
             {
-                'epoch': [epoch],
-                'loss': [loss], 
-                'val_loss': [val_loss], 
-                'F1_micro': [F1_micro], 
-                'F1_macro': [F1_macro],
-                'F1_val_micro': [F1_val_micro],
-                'F1_val_macro': [F1_val_macro]
+                "epoch": [epoch],
+                "loss": [loss],
+                "val_loss": [val_loss],
+                "F1_micro": [F1_micro],
+                "F1_macro": [F1_macro],
+                "F1_val_micro": [F1_val_micro],
+                "F1_val_macro": [F1_val_macro],
             }
-            )
-    
+        )
+
     else:
-        table = pd.DataFrame({
-                'epoch': [epoch],
-                'loss': [loss], 
-                'F1_micro': [F1_micro], 
-                'F1_macro': [F1_macro]})
+        table = pd.DataFrame(
+            {
+                "epoch": [epoch],
+                "loss": [loss],
+                "F1_micro": [F1_micro],
+                "F1_macro": [F1_macro],
+            }
+        )
 
     return table
 
+
 # Train models
 def train_segmentation(
-        net,
-        trainloader,
-        validationloader,
-        NUM_EPOCHS,
-        criterion,
-        optimizer,
-        device,
-        savepath=None,
-        saveevery=None,
-        scheduler=None,
-        show=0,
-        use_amp=False,
-        clip_value=None
-        ):
+    net,
+    trainloader,
+    validationloader,
+    NUM_EPOCHS,
+    criterion,
+    optimizer,
+    device,
+    savepath=None,
+    saveevery=None,
+    scheduler=None,
+    show=0,
+    use_amp=False,
+    clip_value=None,
+):
     """
     Loop through epochs passing images to be segmented on a pixel-by-pixel
     basis.
@@ -163,7 +183,7 @@ def train_segmentation(
                 noisy = noisy.to(device)
                 target = target.to(device)
 
-                if criterion.__class__.__name__ == 'CrossEntropyLoss':
+                if criterion.__class__.__name__ == "CrossEntropyLoss":
                     target = target.type(torch.LongTensor)
                     target = target.to(device).squeeze(1)
 
@@ -213,7 +233,7 @@ def train_segmentation(
                         y = y.to(device)
                         N_val = y.shape[0]
                         tot_val += N_val
-                        if criterion.__class__.__name__ == 'CrossEntropyLoss':
+                        if criterion.__class__.__name__ == "CrossEntropyLoss":
                             y = y.type(torch.LongTensor)
                             y = y.to(device).squeeze(1)
 
@@ -256,13 +276,13 @@ def train_segmentation(
                 live.log_metric("val/F1_macro", F1_val_macro)
                 live.next_step()
 
-            print(f'Epoch: {epoch}')
-            
+            print(f"Epoch: {epoch}")
+
             # Note: This is a very temporary solution to address the single frame mask case.
             if validationloader is None:
                 F1_val_micro = None
                 F1_val_macro = None
-                
+
             table = save_loss(
                 validationloader,
                 savepath,
@@ -273,29 +293,35 @@ def train_segmentation(
                 val_loss=val_loss,
                 F1_val_micro=F1_val_micro,
                 F1_val_macro=F1_val_macro,
-                )
-            
+            )
+
             losses = pd.concat([losses, table])
 
             if show != 0:
                 learning_rates = []
                 for param_group in optimizer.param_groups:
-                    learning_rates.append(param_group['lr'])
+                    learning_rates.append(param_group["lr"])
                 mean_learning_rate = np.mean(np.array(learning_rates))
                 if np.mod(epoch + 1, show) == 0:
                     if validationloader is not None:
                         logging.info(
-                            f'Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}')
+                            f"Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}"
+                        )
                         logging.info(
-                            f'   Training Loss: {loss:.4e} | Validation Loss: {val_loss:.4e}')
+                            f"   Training Loss: {loss:.4e} | Validation Loss: {val_loss:.4e}"
+                        )
                         logging.info(
-                            f'   Micro Training F1: {F1_micro:.4f} | Micro Validation F1: {F1_val_micro:.4f}')
+                            f"   Micro Training F1: {F1_micro:.4f} | Micro Validation F1: {F1_val_micro:.4f}"
+                        )
                         logging.info(
-                            f'   Macro Training F1: {F1_macro:.4f} | Macro Validation F1: {F1_val_macro:.4f}')
+                            f"   Macro Training F1: {F1_macro:.4f} | Macro Validation F1: {F1_val_macro:.4f}"
+                        )
                     else:
                         logging.info(
-                            f'Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}')
+                            f"Epoch {epoch + 1} of {NUM_EPOCHS} | Learning rate {mean_learning_rate:4.3e}"
+                        )
                         logging.info(
+                          
                             f'   Training Loss: {loss:.4e} | Micro Training F1: {F1_micro:.4f} | Macro Training F1: {F1_macro:.4f}')
             
             
@@ -318,37 +344,43 @@ def train_segmentation(
                     best_score = loss             
 
                 if savepath is not None:
-                    torch.save(best_state_dict, savepath + '/net_best')
-                    logging.info('Best network found and saved')
-                    logging.info('')
+
+                    torch.save(best_state_dict, savepath + "/net_best")
+                    logging.info("Best network found and saved")
+                    logging.info("")
+
             if savepath is not None:
                 if np.mod(epoch + 1, saveevery) == 0:
-                    torch.save(net.state_dict(), savepath + '/net_checkpoint')
-                    logging.info('Network intermittently saved')
-                    logging.info('')
+                    torch.save(net.state_dict(), savepath + "/net_checkpoint")
+                    logging.info("Network intermittently saved")
+                    logging.info("")
 
     if validationloader is None:
         validation_loss = []
         F1_validation_trace_micro = []
         F1_validation_trace_macro = []
 
-    results = {"Training loss": train_loss,
-               "Validation loss": validation_loss,
-               "F1 training micro": F1_train_trace_micro,
-               "F1 training macro": F1_train_trace_macro,
-               "F1 validation micro": F1_validation_trace_micro,
-               "F1 validation macro": F1_validation_trace_macro,
-               "Best model index": best_index}
+    results = {
+        "Training loss": train_loss,
+        "Validation loss": validation_loss,
+        "F1 training micro": F1_train_trace_micro,
+        "F1 training macro": F1_train_trace_macro,
+        "F1 validation micro": F1_validation_trace_micro,
+        "F1 validation macro": F1_validation_trace_macro,
+        "Best model index": best_index,
+    }
+
     net.load_state_dict(best_state_dict)
-    losses.to_parquet(savepath+'/losses.parquet', engine='pyarrow')
+    losses.to_parquet(savepath + "/losses.parquet", engine="pyarrow")
     return net, results
+
 
 # Segmentation
 def segment(net, device, inference_loader, qlty_object, tiled_client):
-    net.to(device)   # send network to GPU
+    net.to(device)  # send network to GPU
     frame_number = 0
     for idx, batch in enumerate(inference_loader):
-        print(f'Batch: {idx+1}/{len(inference_loader)}')
+        print(f"Batch: {idx+1}/{len(inference_loader)}")
         with torch.no_grad():
             # Necessary data recasting
             batch = batch.type(torch.FloatTensor)
@@ -364,8 +396,8 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
                 frame = seg_batch[[n]]
                 # Write back to Tiled for the single frame
                 # TODO: Explore the use of threading to speed up this process.
-                tiled_client.write_block(frame, block=(frame_number,0,0))
-                print(f'Frame {frame_number+1} saved to Tiled')
-                frame_number+=1
+                tiled_client.write_block(frame, block=(frame_number, 0, 0))
+                print(f"Frame {frame_number+1} saved to Tiled")
+                frame_number += 1
 
     return frame_number

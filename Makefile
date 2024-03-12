@@ -26,6 +26,6 @@ segment_tunet:
 
 segment_tunet3plus:
 	python src/segment.py example_yamls/example_tunet3plus.yaml
-	
+
 segment_smsnet_ensemble:
 	python src/segment.py example_yamls/example_smsnet_ensemble.yaml

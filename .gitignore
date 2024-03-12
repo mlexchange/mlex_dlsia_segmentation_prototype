@@ -5,7 +5,7 @@ test_params.yaml
 uid*/
 .DS_Store
 
-# dvc related for testing 
+# dvc related for testing
 .dvc*
 dvc*
 
