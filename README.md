@@ -1,6 +1,6 @@
 # mlex_dlsia_segmentation_prototype
 
-This pipeline is developed using DLSIA Package to run segmentation tasks for the High_Res Segmentation Application. 
+This pipeline is developed using DLSIA Package to run segmentation tasks for the High_Res Segmentation Application.
 
 The primary goal is to make this compatible with the updated segmentation application as a paperation for the incoming Diamond Beamtime in March 2024.
 
@@ -24,7 +24,7 @@ The primary goal is to make this compatible with the updated segmentation applic
 
 ### 3. Installation
 
-- Git Clone the repository. 
+- Git Clone the repository.
 
  - Navigate to the repository, then create a new conda environment (recommended).
 
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 ```
 - Initialize DVC for loss and metric saving, this only needs to be done once with your github account:
 
-First, remove or comment out `.dvc*` and `dvc*` from .gitignore file. 
+First, remove or comment out `.dvc*` and `dvc*` from .gitignore file.
 
 Then run in the following order:
 
@@ -53,16 +53,16 @@ git config --global user.email "johndoe@email.com"
 
 Then add back dvc related files in .gitignore file.
 
-Note: this step is only for dvc related repo and directory initialization, it will not enable auto-commits back to the GitHub repo or dvc repo. This feature will be discussed and potentially introduced in the future. 
+Note: this step is only for dvc related repo and directory initialization, it will not enable auto-commits back to the GitHub repo or dvc repo. This feature will be discussed and potentially introduced in the future.
 
-### 4. Parameter Initialization 
+### 4. Parameter Initialization
 
 - Navigate to directory "example_yamls/".
 - Open one of the example yaml files for the model of interest you would like to test on.
-- Inside the yaml file, change parameters according to you needs. 
+- Inside the yaml file, change parameters according to you needs.
 - `uid_save`: where you want to save the model and metric report.
 - `uid_retrieve`: where you want to retrieve your trained model.
-- Model parameters: we have pre-filled some values for speed testing, those are not meant for default settings. For more information regarding recommanded values for each neural network, please refer to [this](https://dlsia.readthedocs.io/en/latest/tutorialLinks/segmentation_MSDNet_TUNet_TUNet3plus.html) example in the DLSIA documentation.   
+- Model parameters: we have pre-filled some values for speed testing, those are not meant for default settings. For more information regarding recommanded values for each neural network, please refer to [this](https://dlsia.readthedocs.io/en/latest/tutorialLinks/segmentation_MSDNet_TUNet_TUNet3plus.html) example in the DLSIA documentation.
 
 ### 5. Model Training
 
@@ -72,7 +72,7 @@ Note: this step is only for dvc related repo and directory initialization, it wi
 make train_<your model name>
 ```
 
-For example, if you pre-filled values for a tunet yaml file: 
+For example, if you pre-filled values for a tunet yaml file:
 ```
 make train_tunet
 ```
