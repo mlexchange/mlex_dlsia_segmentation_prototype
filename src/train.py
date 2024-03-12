@@ -1,7 +1,7 @@
 import  argparse
 from    network         import  build_network
 from    parameters      import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters, SMSNetEnsembleParameters
-from    seg_utils       import  train_val_split, train_segmentation
+from    seg_utils       import  train_val_split, crop_split_load, train_segmentation
 from    tiled_dataset   import  TiledDataset
 import  torch
 import  torch.nn        as      nn
@@ -9,6 +9,7 @@ import  torch.optim     as      optim
 from    torchvision     import  transforms
 from    utils           import  create_directory
 import  yaml
+import numpy as np
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -54,12 +55,19 @@ if __name__ == '__main__':
         mask_tiled_uri=io_parameters.mask_tiled_uri,
         mask_tiled_api_key=io_parameters.mask_tiled_api_key,
         is_training=True,
+        using_qlty=False,
         qlty_window=model_parameters.qlty_window,
         qlty_step=model_parameters.qlty_step,
         qlty_border=model_parameters.qlty_border,
         transform=transforms.ToTensor()
         )
-    train_loader, val_loader = train_val_split(dataset, model_parameters)
+
+    # Load all labeled data and masks into memory
+    data = dataset.data_client[dataset.mask_idx]
+    mask = np.array(dataset.mask_client)
+    
+    # train_loader, val_loader = train_val_split(dataset, model_parameters)
+    train_loader, val_loader = crop_split_load(data, mask, model_parameters)
       
     # Build network
     networks = build_network(

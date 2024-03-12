@@ -2,13 +2,14 @@ import  argparse
 import  glob
 from    network                 import  load_network, baggin_smsnet_ensemble
 from    parameters              import  IOParameters, MSDNetParameters, TUNetParameters, TUNet3PlusParameters, SMSNetEnsembleParameters
-from    seg_utils               import  custom_collate, segment
+from    seg_utils               import  custom_collate, segment, crop_seg_save
 from    tiled_dataset           import  TiledDataset
 import  torch
 from    torch.utils.data        import  DataLoader
 from    torchvision             import  transforms
 from    utils                   import  allocate_array_space
 import  yaml
+from    qlty.qlty2D     import  NCYXQuilt
 
 
 if __name__ == '__main__':
@@ -49,17 +50,22 @@ if __name__ == '__main__':
         mask_tiled_uri=io_parameters.mask_tiled_uri,
         mask_tiled_api_key=io_parameters.mask_tiled_api_key,
         is_training=False,
+        using_qlty=False,
         qlty_window=model_parameters.qlty_window,
         qlty_step=model_parameters.qlty_step,
         qlty_border=model_parameters.qlty_border,
         transform=transforms.ToTensor()
         )
+    
+    qlty_inference = NCYXQuilt(X=dataset.data_client.shape[-1], 
+                           Y=dataset.data_client.shape[-2],
+                           window=(model_parameters.qlty_window, model_parameters.qlty_window),
+                           step=(model_parameters.qlty_step, model_parameters.qlty_step),
+                           border=(model_parameters.qlty_border, model_parameters.qlty_border),
+                           border_weight=0.2,
+                          )
 
-    # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
-    inference_loader_params = {'batch_size': model_parameters.batch_size_inference,
-                               'shuffle': False}
-    # Build Dataloaders
-    inference_loader = DataLoader(dataset, **inference_loader_params, collate_fn=custom_collate)
+    
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f'Inference will be processed on: {device}')
@@ -81,9 +87,23 @@ if __name__ == '__main__':
                                       )
     print(f'Result space allocated in Tiled and segmentation will be saved in {seg_client.uri}.')
 
-    # Start segmentation and save frame by frame
-    frame_count = segment(net, device, inference_loader, dataset.qlty_object, seg_client)
-
-    assert frame_count == len(dataset)
-
+    for idx in range(len(dataset)):
+        seg_result = crop_seg_save(net=net,
+                                   device=device, 
+                                   image=dataset[idx], 
+                                   qlty_object=qlty_inference, 
+                                   parameters=model_parameters, 
+                                   tiled_client=seg_client, 
+                                   frame_idx=idx,
+                                   )
     print('Segmentation completed.')
+    # # # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
+    # # inference_loader_params = {'batch_size': model_parameters.batch_size_inference,
+    # #                            'shuffle': False}
+    # # # Build Dataloaders
+    # # inference_loader = DataLoader(dataset, **inference_loader_params, collate_fn=custom_collate)
+
+    # # # Start segmentation and save frame by frame
+    # # frame_count = segment(net, device, inference_loader, dataset.qlty_object, seg_client)
+
+
