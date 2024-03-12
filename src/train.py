@@ -31,7 +31,6 @@ if __name__ == "__main__":
     # Validate and load I/O related parameters
     io_parameters = parameters["io_parameters"]
     io_parameters = IOParameters(**io_parameters)
-
     # Check whether mask_uri has been provided as this is a requirement for training.
     assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
 
@@ -78,14 +77,22 @@ if __name__ == "__main__":
     )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"Training will be processed on: {device}")
+    
+    print(f"      MEMORY ALLOCATED   {torch.cuda.memory_allocated(0)}")
+    torch.cuda.empty_cache()
+    print(f'Training will be processed on: {device}')
+
 
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
     # Convert the string to a list of floats
-    weights = [float(x) for x in model_parameters.weights.strip("[]").split(",")]
-    weights = torch.tensor(weights, dtype=torch.float).to(device)
-    criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
+
+    weights = [float(x) for x in model_parameters.weights.strip('[]').split(',')]
+    weights = torch.tensor(weights,dtype=torch.float).to(device)
+    criterion = criterion(weight=weights,
+                          ignore_index=-1, 
+                          size_average=None
+                          )    
 
     for idx, net in enumerate(networks):
         print(f"{network}: {idx+1}/{len(networks)}")
@@ -108,9 +115,10 @@ if __name__ == "__main__":
             clip_value=None,
         )
         # Save network parameters
-        model_params_path = (
-            f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
-        )
+
+        model_params_path = f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
+        print(f"!!!!!!!   model_params_path {model_params_path}")
+
         net.save_network_parameters(model_params_path)
         # Clear out unnecessary variables from device memory
         torch.cuda.empty_cache()

@@ -73,7 +73,9 @@ if __name__ == "__main__":
     )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"Inference will be processed on: {device}")
+
+    torch.cuda.empty_cache()
+    print(f'Inference will be processed on: {device}')
 
     # Load Network
     if network == "SMSNetEnsemble":

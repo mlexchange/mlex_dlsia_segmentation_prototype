@@ -55,9 +55,9 @@ def allocate_array_space(
 
     last_container = ensure_parent_containers(seg_tiled_uri, seg_tiled_api_key)
 
-    assert (
-        uid not in last_container.keys()
-    ), f"uid_save: {uid} already existed in Tiled Server"
+    print(f"@@@@@@@@@@    last_container   {last_container.uri}")
+    assert uid not in last_container.keys(), f'uid_save: {uid} already existed in Tiled Server'
+
 
     last_container = last_container.create_container(key=uid)
     array_shape = (
@@ -69,13 +69,13 @@ def allocate_array_space(
     # For now, only save image 1 by 1 regardless of the batch_size_inference.
     structure.chunks = ((1,) * array_shape[0], (array_shape[1],), (array_shape[2],))
 
-    metadata = {
-        "data_tiled_uri": tiled_dataset.data_tiled_uri,
-        "mask_uri": tiled_dataset.mask_tiled_uri,
-        "mask_idx": tiled_dataset.mask_idx,
-        "uid": uid,
-        "model": model,
-    }
+    metadata={
+        'data_uri': tiled_dataset.data_tiled_uri,
+        'mask_uri': tiled_dataset.mask_tiled_uri, 
+        'mask_idx': tiled_dataset.mask_idx,
+        'uid': uid,
+        'model': model, 
+        }
 
     array_client = last_container.new(
         structure_family="array",
