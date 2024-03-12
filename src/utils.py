@@ -49,6 +49,9 @@ def allocate_array_space(
 
     last_container = last_container.create_container(key=uid)
     array_shape = tiled_dataset.mask_client.shape if tiled_dataset.mask_client else tiled_dataset.data_client.shape
+    # In case we have 2d array for the single mask case, where the ArrayClient will return a 2d array.
+    if len(array_shape) == 2:
+        array_shape = np.expand_dims(array_shape, axis=0)
     structure = ArrayStructure.from_array(np.zeros(array_shape,dtype=np.int8))
     # For now, only save image 1 by 1 regardless of the batch_size_inference.
     structure.chunks = ((1,) * array_shape[0], (array_shape[1],), (array_shape[2],))
