@@ -66,10 +66,11 @@ def train_val_split(dataset, parameters):
 
 
 def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
-    # Standardization
-    images = (
-        images / 255
-    )  # TODO: Revisit the best normalization option we can do, thinking about transferring between sets and train-inference.
+    # Normalize by clipping to 1% and 99% percentiles
+    low = np.percentile(images.ravel(), 1)
+    high = np.percentile(images.ravel(), 99)
+    images = np.clip((images - low) / (high - low), 0, 1)
+
     images = torch.from_numpy(images)
     masks = torch.from_numpy(masks)
 
@@ -469,10 +470,11 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
 
 def crop_seg_save(net, device, image, qlty_object, parameters, tiled_client, frame_idx):
     assert image.ndim == 2
-    # Standardization
-    image = (
-        image / 255
-    )  # TODO: follow the decision of normalization we use in training.
+    # Normalize by clipping to 1% and 99% percentiles
+    low = np.percentile(image.ravel(), 1)
+    high = np.percentile(image.ravel(), 99)
+    image = np.clip((image - low) / (high - low), 0, 1)
+
     image = torch.from_numpy(image)
     image = image.unsqueeze(0).unsqueeze(0)
 
