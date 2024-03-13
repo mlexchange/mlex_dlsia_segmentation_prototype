@@ -23,6 +23,9 @@ class IOParameters(BaseModel):
     uid_retrieve: Optional[str] = Field(
         description="optional, uid to retrieve models for inference"
     )
+    models_dir: Optional[str] = Field(
+        default=None, description="directory to save model results"
+    )
 
 
 # ===========================================General Parameters===========================================#
