@@ -1,6 +1,5 @@
 import argparse
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -71,7 +70,7 @@ if __name__ == "__main__":
 
     # Load all labeled data and masks into memory
     data = dataset.data_client[dataset.mask_idx]
-    mask = np.array(dataset.mask_client)
+    mask = dataset.mask_client[:]
 
     # train_loader, val_loader = train_val_split(dataset, model_parameters)
     train_loader, val_loader = crop_split_load(data, mask, model_parameters)
