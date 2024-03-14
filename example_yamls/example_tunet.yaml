@@ -10,6 +10,7 @@ io_parameters:
   seg_tiled_api_key:
   uid_save:
   uid_retrieve:
+  models_dir: .
 
 model_parameters:
   network: "TUNet"

@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import torch
 import torch.nn as nn
@@ -52,8 +53,9 @@ if __name__ == "__main__":
 
     print("Parameters loaded successfully.")
 
+    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
     # Create Result Directory if not existed
-    create_directory(io_parameters.uid_save)
+    create_directory(model_dir)
 
     dataset = TiledDataset(
         data_tiled_uri=io_parameters.data_tiled_uri,
@@ -110,7 +112,7 @@ if __name__ == "__main__":
             criterion,
             optimizer,
             device,
-            savepath=io_parameters.uid_save,
+            savepath=model_dir,
             saveevery=None,
             scheduler=None,
             show=0,
@@ -119,9 +121,10 @@ if __name__ == "__main__":
         )
         # Save network parameters
 
-        model_params_path = (
-            f"{io_parameters.uid_save}/{io_parameters.uid_save}_{network}{idx+1}.pt"
+        model_params_path = os.path.join(
+            model_dir, f"{io_parameters.uid_save}_{network}{idx+1}.pt"
         )
+
         print(f"!!!!!!!   model_params_path {model_params_path}")
 
         net.save_network_parameters(model_params_path)

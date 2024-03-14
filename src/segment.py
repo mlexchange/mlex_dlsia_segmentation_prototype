@@ -1,5 +1,6 @@
 import argparse
 import glob
+import os
 
 import torch
 import yaml
@@ -78,11 +79,13 @@ if __name__ == "__main__":
     torch.cuda.empty_cache()
     print(f"Inference will be processed on: {device}")
 
+    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_retrieve)
+
     # Load Network
     if network == "SMSNetEnsemble":
-        net = baggin_smsnet_ensemble(io_parameters.uid_retrieve)
+        net = baggin_smsnet_ensemble(model_dir)
     else:
-        net_files = glob.glob(f"{io_parameters.uid_retrieve}/*.pt")
+        net_files = glob.glob(os.path.join(model_dir, "*.pt"))
         net = load_network(network, net_files[0])
 
     # Allocate Result space in Tiled
