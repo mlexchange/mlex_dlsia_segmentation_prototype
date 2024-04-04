@@ -18,6 +18,8 @@ from parameters import (
 from seg_utils import crop_split_load, train_segmentation
 from tiled_dataset import TiledDataset
 from utils import create_directory
+from dvclive import Live
+from dlsia.core.train_scripts import Trainer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -99,12 +101,22 @@ if __name__ == "__main__":
     weights = torch.tensor(weights, dtype=torch.float).to(device)
     criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
 
+    use_dvclive = True
+    use_savedvcexp= False
+
     for idx, net in enumerate(networks):
         print(f"{network}: {idx+1}/{len(networks)}")
         optimizer = getattr(optim, model_parameters.optimizer)
         optimizer = optimizer(net.parameters(), lr=model_parameters.learning_rate)
         net = net.to(device)
-        net, results = train_segmentation(
+
+        if use_dvclive:
+            dvclive_savepath = f"{model_dir}/dvc_metrics"
+            dvclive = Live(dvclive_savepath, report = "html", save_dvc_exp = use_savedvcexp)
+        else:
+            dvclive = None
+
+        trainer =   Trainer(
             net,
             train_loader,
             val_loader,
@@ -112,15 +124,17 @@ if __name__ == "__main__":
             criterion,
             optimizer,
             device,
+            dvclive=dvclive,
             savepath=model_dir,
             saveevery=None,
             scheduler=None,
             show=0,
             use_amp=False,
-            clip_value=None,
+            clip_value=None
         )
-        # Save network parameters
+        net, results = trainer.train_segmentation()   # training happens here
 
+        # Save network parameters
         model_params_path = os.path.join(
             model_dir, f"{io_parameters.uid_save}_{network}{idx+1}.pt"
         )
