@@ -5,10 +5,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import yaml
-from torchvision import transforms
-
 from dlsia.core.train_scripts import Trainer
 from dvclive import Live
+from torchvision import transforms
+
 from network import build_network
 from parameters import (
     IOParameters,
@@ -20,7 +20,6 @@ from parameters import (
 from seg_utils import crop_split_load, train_segmentation
 from tiled_dataset import TiledDataset
 from utils import create_directory
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
