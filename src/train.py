@@ -102,7 +102,7 @@ if __name__ == "__main__":
     criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
 
     use_dvclive = True
-    use_savedvcexp= False
+    use_savedvcexp = False
 
     for idx, net in enumerate(networks):
         print(f"{network}: {idx+1}/{len(networks)}")
@@ -112,11 +112,11 @@ if __name__ == "__main__":
 
         if use_dvclive:
             dvclive_savepath = f"{model_dir}/dvc_metrics"
-            dvclive = Live(dvclive_savepath, report = "html", save_dvc_exp = use_savedvcexp)
+            dvclive = Live(dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp)
         else:
             dvclive = None
 
-        trainer =   Trainer(
+        trainer = Trainer(
             net,
             train_loader,
             val_loader,
@@ -130,9 +130,9 @@ if __name__ == "__main__":
             scheduler=None,
             show=0,
             use_amp=False,
-            clip_value=None
+            clip_value=None,
         )
-        net, results = trainer.train_segmentation()   # training happens here
+        net, results = trainer.train_segmentation()  # training happens here
 
         # Save network parameters
         model_params_path = os.path.join(
