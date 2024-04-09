@@ -18,7 +18,7 @@ from .parameters import (
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from .seg_utils import crop_split_load, train_segmentation
+from .seg_utils import crop_split_load
 from .tiled_dataset import TiledDataset
 from .utils import create_directory
 
