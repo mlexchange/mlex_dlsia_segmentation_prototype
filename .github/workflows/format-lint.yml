@@ -29,3 +29,6 @@ jobs:
       - name: Test formatting with black
         run: |
           black . --check
+      - name: pytest
+        run: |
+          pytest

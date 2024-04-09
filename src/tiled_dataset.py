@@ -1,16 +1,14 @@
 import torch
 from qlty import cleanup
 from qlty.qlty2D import NCYXQuilt
-from tiled.client import from_uri
 
 
 class TiledDataset(torch.utils.data.Dataset):
+
     def __init__(
         self,
-        data_tiled_uri,
-        data_tiled_api_key=None,
-        mask_tiled_uri=None,
-        mask_tiled_api_key=None,
+        data_tiled_client,
+        mask_tiled_client=None,
         is_training=None,
         using_qlty=False,
         qlty_window=50,
@@ -33,20 +31,16 @@ class TiledDataset(torch.utils.data.Dataset):
         Return:
             ml_data:        tuple, (data_tensor, mask_tensor)
         """
-        self.data_tiled_uri = data_tiled_uri
-        self.data_client = from_uri(data_tiled_uri, api_key=data_tiled_api_key)
-        self.mask_tiled_uri = mask_tiled_uri
-        if mask_tiled_uri:
-            self.mask_client_one_up = from_uri(
-                mask_tiled_uri, api_key=mask_tiled_api_key
-            )
-            self.mask_client = self.mask_client_one_up["mask"]
-            self.mask_idx = [
-                int(idx) for idx in self.mask_client_one_up.metadata["mask_idx"]
-            ]
+
+        self.data_client = data_tiled_client
+        self.mask_client = None
+        if mask_tiled_client:
+            self.mask_client = mask_tiled_client
+            self.mask_idx = [int(idx) for idx in mask_tiled_client.metadata["mask_idx"]]
         else:
             self.mask_client = None
             self.mask_idx = None
+
         self.transform = transform
         if using_qlty:
             # this object handles unstitching and stitching

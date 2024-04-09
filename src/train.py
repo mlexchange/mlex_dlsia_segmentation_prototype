@@ -7,25 +7,23 @@ import torch.optim as optim
 import yaml
 from dlsia.core.train_scripts import Trainer
 from dvclive import Live
+from tiled.client import from_uri
 from torchvision import transforms
 
-from network import build_network
-from parameters import (
+from .network import build_network
+from .parameters import (
     IOParameters,
     MSDNetParameters,
     SMSNetEnsembleParameters,
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from seg_utils import crop_split_load, train_segmentation
-from tiled_dataset import TiledDataset
-from utils import create_directory
+from .seg_utils import crop_split_load, train_segmentation
+from .tiled_dataset import TiledDataset
+from .utils import create_directory
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("yaml_path", type=str, help="path of yaml file for parameters")
-    args = parser.parse_args()
 
+def train(args):
     # Open the YAML file for all parameters
     with open(args.yaml_path, "r") as file:
         # Load parameters
@@ -59,11 +57,17 @@ if __name__ == "__main__":
     # Create Result Directory if not existed
     create_directory(model_dir)
 
+    data_tiled_client = from_uri(
+        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
+    )
+    mask_tiled_client = None
+    if io_parameters.mask_tiled_uri:
+        mask_tiled_client = from_uri(
+            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+        )
     dataset = TiledDataset(
-        data_tiled_uri=io_parameters.data_tiled_uri,
-        data_tiled_api_key=io_parameters.data_tiled_api_key,
-        mask_tiled_uri=io_parameters.mask_tiled_uri,
-        mask_tiled_api_key=io_parameters.mask_tiled_api_key,
+        data_tile_client=data_tiled_client,
+        mask_tiled_client=mask_tiled_client,
         is_training=True,
         using_qlty=False,
         qlty_window=model_parameters.qlty_window,
@@ -146,3 +150,10 @@ if __name__ == "__main__":
         torch.cuda.empty_cache()
 
     print(f"{network} trained successfully.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("yaml_path", type=str, help="path of yaml file for parameters")
+    args = parser.parse_args()
+    train(args)
