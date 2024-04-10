@@ -40,8 +40,7 @@ def client(context):
     yield client
 
 
-@pytest.mark.asyncio
-async def test_tiled_dataset(client):
+def test_tiled_dataset(client):
     tiled_dataset = TiledDataset(
         client["reconstructions"]["recon1"],
     )
@@ -49,8 +48,7 @@ async def test_tiled_dataset(client):
     assert tiled_dataset[0].shape == (3, 3)
 
 
-@pytest.mark.asyncio
-async def test_tiled_dataset_with_masks(client):
+def test_tiled_dataset_with_masks(client):
     tiled_dataset = TiledDataset(
         client["reconstructions"]["recon1"], mask_tiled_client=client["masks"]
     )
