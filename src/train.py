@@ -10,17 +10,17 @@ from dvclive import Live
 from tiled.client import from_uri
 from torchvision import transforms
 
-from .network import build_network
-from .parameters import (
+from network import build_network
+from parameters import (
     IOParameters,
     MSDNetParameters,
     SMSNetEnsembleParameters,
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from .seg_utils import crop_split_load
-from .tiled_dataset import TiledDataset
-from .utils import create_directory
+from seg_utils import crop_split_load
+from tiled_dataset import TiledDataset
+from utils import create_directory
 
 
 def train(args):
