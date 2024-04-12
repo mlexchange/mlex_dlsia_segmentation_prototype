@@ -56,9 +56,11 @@ if __name__ == "__main__":
     data_tiled_client = from_uri(
         io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
     )
-    mask_tiled_client = from_uri(
-        io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
-    )
+    mask_tiled_client = None
+    if io_parameters.mask_tiled_uri:
+        mask_tiled_client = from_uri(
+            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+        )
     dataset = TiledDataset(
         data_tiled_client,
         mask_tiled_client=mask_tiled_client,
