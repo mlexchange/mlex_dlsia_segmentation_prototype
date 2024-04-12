@@ -11,6 +11,6 @@ def test_tiled_dataset(client):
 
 def test_tiled_dataset_with_masks(client):
     tiled_dataset = TiledDataset(
-        client["reconstructions"]["recon1"], mask_tiled_client=client["mask"]
+        client["reconstructions"]["recon1"], mask_tiled_client=client["uid0001"]
     )
     assert tiled_dataset[0].shape == (3, 3)
