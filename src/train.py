@@ -66,7 +66,7 @@ def train(args):
             io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
         )
     dataset = TiledDataset(
-        data_tile_client=data_tiled_client,
+        data_tiled_client=data_tiled_client,
         mask_tiled_client=mask_tiled_client,
         is_training=True,
         using_qlty=False,
