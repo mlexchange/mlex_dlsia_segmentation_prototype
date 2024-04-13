@@ -6,10 +6,10 @@ import torch.nn as nn
 import torch.optim as optim
 import yaml
 from dlsia.core.train_scripts import Trainer
-from dvclive import Live
 from tiled.client import from_uri
 from torchvision import transforms
 
+from dvclive import Live
 from network import build_network
 from parameters import (
     IOParameters,
