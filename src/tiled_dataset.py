@@ -35,7 +35,7 @@ class TiledDataset(torch.utils.data.Dataset):
         self.data_client = data_tiled_client
         self.mask_client = None
         if mask_tiled_client:
-            self.mask_client = mask_tiled_client
+            self.mask_client = mask_tiled_client['mask']
             self.mask_idx = [int(idx) for idx in mask_tiled_client.metadata["mask_idx"]]
         else:
             self.mask_client = None
