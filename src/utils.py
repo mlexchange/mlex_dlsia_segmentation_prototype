@@ -77,9 +77,13 @@ def allocate_array_space(
     # For now, only save image 1 by 1 regardless of the batch_size_inference.
     structure.chunks = ((1,) * array_shape[0], (array_shape[1],), (array_shape[2],))
 
+    mask_uri = None
+    if tiled_dataset.mask_client is not None:
+        mask_uri = tiled_dataset.mask_client.uri
+
     metadata = {
-        "data_uri": tiled_dataset.data_tiled_uri,
-        "mask_uri": tiled_dataset.mask_tiled_uri,
+        "data_uri": tiled_dataset.data_client.uri,
+        "mask_uri": mask_uri,
         "mask_idx": tiled_dataset.mask_idx,
         "uid": uid,
         "model": model,

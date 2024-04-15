@@ -5,6 +5,7 @@ import os
 import torch
 import yaml
 from qlty.qlty2D import NCYXQuilt
+from tiled.client import from_uri
 from torchvision import transforms
 
 from network import baggin_smsnet_ensemble, load_network
@@ -52,11 +53,17 @@ if __name__ == "__main__":
 
     print("Parameters loaded successfully.")
 
+    data_tiled_client = from_uri(
+        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
+    )
+    mask_tiled_client = None
+    if io_parameters.mask_tiled_uri:
+        mask_tiled_client = from_uri(
+            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+        )
     dataset = TiledDataset(
-        data_tiled_uri=io_parameters.data_tiled_uri,
-        data_tiled_api_key=io_parameters.data_tiled_api_key,
-        mask_tiled_uri=io_parameters.mask_tiled_uri,
-        mask_tiled_api_key=io_parameters.mask_tiled_api_key,
+        data_tiled_client,
+        mask_tiled_client=mask_tiled_client,
         is_training=False,
         using_qlty=False,
         qlty_window=model_parameters.qlty_window,
