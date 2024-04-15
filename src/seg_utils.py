@@ -4,12 +4,11 @@ import numpy as np
 import pandas as pd
 import torch
 from dlsia.core.train_scripts import segmentation_metrics
+from dvclive import Live
 from qlty import cleanup
 from qlty.qlty2D import NCYXQuilt
 from torch.utils.data import DataLoader, TensorDataset, random_split
 from torch.utils.data.dataloader import default_collate
-
-from dvclive import Live
 
 
 def custom_collate(batch):
