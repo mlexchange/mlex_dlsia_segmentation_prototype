@@ -2,11 +2,11 @@
 
 # I/O
 io_parameters:
-  data_tiled_uri: 
+  data_tiled_uri:
   data_tiled_api_key:
-  mask_tiled_uri: 
+  mask_tiled_uri:
   mask_tiled_api_key:
-  seg_tiled_uri: 
+  seg_tiled_uri:
   uid_save:
   uid_retrieve:
   models_dir: .

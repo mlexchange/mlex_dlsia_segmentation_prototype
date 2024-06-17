@@ -1,14 +1,10 @@
-import numpy as np
-from ..train import train
-
-
 # TODO: test general yaml loading, check param type
 
 # TODO: test model params loading, check pydantic class type / format
 
 # TODO: check dir creation? How to handle file system change during pytest?
 
-# TODO: load TiledDataset from fixture client, test already done. 
+# TODO: load TiledDataset from fixture client, test already done.
 
 # TODO: test data and mask array dim and shape
 
@@ -23,5 +19,3 @@ from ..train import train
 # TODO: test trainer building
 
 # TODO: test 1 epoch, check param saving
-
-
