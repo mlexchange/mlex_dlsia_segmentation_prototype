@@ -1,0 +1,41 @@
+# Example for parameters to excecute
+
+# I/O
+io_parameters:
+  data_tiled_uri:
+  data_tiled_api_key:
+  mask_tiled_uri:
+  mask_tiled_api_key:
+  seg_tiled_uri:
+  uid_save:
+  uid_retrieve:
+  models_dir: .
+
+model_parameters:
+  network: "TUNet"
+  num_classes: 3
+  num_epochs: 3
+  optimizer: "Adam"
+  criterion: "CrossEntropyLoss"
+  weights: "[1.0, 2.0, 0.5]"
+  learning_rate: 0.1
+  activation: "ReLU"
+  normalization: "BatchNorm2d"
+  convolution: "Conv2d"
+
+  qlty_window: 64
+  qlty_step: 32
+  qlty_border: 8
+
+  shuffle_train: True
+  batch_size_train: 1
+
+  batch_size_val: 1
+
+  batch_size_inference: 2
+  val_pct: 0.2
+
+  depth: 4
+  base_channels: 8
+  growth_rate: 2
+  hidden_rate: 1
