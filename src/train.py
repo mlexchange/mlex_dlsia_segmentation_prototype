@@ -20,38 +20,14 @@ from parameters import (
 )
 from seg_utils import crop_split_load
 from tiled_dataset import TiledDataset
-from utils import create_directory
+from utils import create_directory, load_yaml, validate_parameters
+
 
 
 def train(args):
-    # Open the YAML file for all parameters
-    with open(args.yaml_path, "r") as file:
-        # Load parameters
-        parameters = yaml.safe_load(file)
-
-    # Validate and load I/O related parameters
-    io_parameters = parameters["io_parameters"]
-    io_parameters = IOParameters(**io_parameters)
-    # Check whether mask_uri has been provided as this is a requirement for training.
-    assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
-
-    # Detect which model we have, then load corresponding parameters
-    raw_parameters = parameters["model_parameters"]
-    network = raw_parameters["network"]
-
-    model_parameters = None
-    if network == "MSDNet":
-        model_parameters = MSDNetParameters(**raw_parameters)
-    elif network == "TUNet":
-        model_parameters = TUNetParameters(**raw_parameters)
-    elif network == "TUNet3+":
-        model_parameters = TUNet3PlusParameters(**raw_parameters)
-    elif network == "SMSNetEnsemble":
-        model_parameters = SMSNetEnsembleParameters(**raw_parameters)
-
-    assert model_parameters, f"Received Unsupported Network: {network}"
-
-    print("Parameters loaded successfully.")
+    parameters = load_yaml(args.yaml_path)
+    io_parameters, network, model_parameters = validate_parameters(parameters)
+    
 
     model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
     # Create Result Directory if not existed

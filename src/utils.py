@@ -5,6 +5,66 @@ import numpy as np
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 
+import yaml
+from parameters import (
+    IOParameters,
+    MSDNetParameters,
+    SMSNetEnsembleParameters,
+    TUNet3PlusParameters,
+    TUNetParameters,
+)
+
+def load_yaml(yaml_path):
+    '''
+    This function loads parameters from the yaml file.
+    Input:
+        yaml_path: str, path of the yaml file.
+    Output:
+        parameters: dict, dictionary of all parameters.
+    '''
+    # Open the YAML file for all parameters
+    with open(yaml_path, "r") as file:
+        # Load parameters
+        parameters = yaml.safe_load(file)
+        return parameters
+
+def validate_parameters(parameters):
+    '''
+    This function extracts parameters from the whole parameter dict 
+    and performs pydantic validation for both io-related and model-related parameters. 
+    Input:
+        parameters: dict, parameters from the yaml file as a whole.
+    Output:
+        io_parameters: class, all io parameters in pydantic class
+        network: str, name of the selected algorithm
+        model_parameters: class, all model specific parameters in pydantic class
+    '''
+    # Validate and load I/O related parameters
+    io_parameters = parameters["io_parameters"]
+    io_parameters = IOParameters(**io_parameters)
+    # Check whether mask_uri has been provided as this is a requirement for training.
+    assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
+
+    # Detect which model we have, then load corresponding parameters
+    raw_model_parameters = parameters["model_parameters"]
+    network = raw_model_parameters["network"]
+
+    model_parameters = None
+    if network == "MSDNet":
+        model_parameters = MSDNetParameters(**raw_model_parameters)
+    elif network == "TUNet":
+        model_parameters = TUNetParameters(**raw_model_parameters)
+    elif network == "TUNet3+":
+        model_parameters = TUNet3PlusParameters(**raw_model_parameters)
+    elif network == "SMSNetEnsemble":
+        model_parameters = SMSNetEnsembleParameters(**raw_model_parameters)
+
+    assert model_parameters, f"Received Unsupported Network: {network}"
+
+    print("Parameters loaded successfully.")
+    return io_parameters, network, model_parameters
+
+
 
 # Create directory
 def create_directory(path):

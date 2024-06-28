@@ -2,13 +2,13 @@
 
 # I/O
 io_parameters:
-  data_tiled_uri:
-  data_tiled_api_key:
-  mask_tiled_uri:
-  mask_tiled_api_key:
-  seg_tiled_uri:
-  uid_save:
-  uid_retrieve:
+  data_tiled_uri: "http://data/tiled/uri"
+  data_tiled_api_key: a1b2c3
+  mask_tiled_uri: "http://mask/tiled/uri"
+  mask_tiled_api_key: d4e5f6
+  seg_tiled_uri: "http://seg/tiled/uri"
+  uid_save: pytest1
+  uid_retrieve: pytest1
   models_dir: .
 
 model_parameters:
