@@ -5,6 +5,8 @@ from tiled.client import Context, from_context
 from tiled.server.app import build_app
 
 from ..utils import load_yaml, validate_parameters
+from ..train import prepare_data_and_mask
+from ..tiled_dataset import TiledDataset
 
 
 @pytest.fixture
@@ -35,10 +37,18 @@ def client(context):
     client = from_context(context)
     recons_container = client.create_container("reconstructions")
     recons_container.write_array(np.random.randint(0, 256, size=(5, 3, 3), dtype=np.uint8), key="recon1")
-    masks_container = client.create_container("uid0001", metadata={"mask_idx": ["1"]})
+    masks_container = client.create_container("uid0001", metadata={"mask_idx": ["1", "3"]})
     masks_container.write_array(np.ones((2, 3, 3), dtype=np.int8), key="mask")
     yield client
 
+@pytest.fixture
+def tiled_dataset(client):
+    tiled_dataset = TiledDataset(
+        data_tiled_client=client["reconstructions"]["recon1"],
+        mask_tiled_client=client["uid0001"],
+        is_training=True,
+    )
+    yield tiled_dataset
 
 @pytest.fixture
 def yaml_path():
@@ -55,5 +65,8 @@ def parameters(parameters_dict):
     io_parameters, network, model_parameters = validate_parameters(parameters_dict)
     yield io_parameters, network, model_parameters
 
-
+@pytest.fixture
+def data_and_mask(tiled_dataset):
+    data, mask = prepare_data_and_mask(tiled_dataset)
+    yield data, mask
 

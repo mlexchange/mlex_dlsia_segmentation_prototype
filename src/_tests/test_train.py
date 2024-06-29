@@ -1,6 +1,9 @@
-# TODO: test general yaml loading, check param type
+def test_data_and_mask(data_and_mask):
+    print(f'data_and_mask: {data_and_mask}, {data_and_mask[0]}, {data_and_mask[1]}')
+    data, mask = data_and_mask[0], data_and_mask[1]
+    assert len(data) == 2
+    assert len(mask) == 2
 
-# TODO: test model params loading, check pydantic class type / format
 
 # TODO: check dir creation? How to handle file system change during pytest?
 

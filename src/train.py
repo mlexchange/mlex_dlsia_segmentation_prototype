@@ -20,41 +20,29 @@ from parameters import (
 )
 from seg_utils import crop_split_load
 from tiled_dataset import TiledDataset
-from utils import create_directory, load_yaml, validate_parameters
+from utils import create_directory, load_yaml, validate_parameters, initialize_tiled_datasets
 
+def prepare_data_and_mask(tiled_dataset):
+    '''
+    This function extracts the data and mask array stack from the tiled dataset class
+    Input:
+        tiled_dataset: class
+    Output:
+        data: np.ndarray, all labeled raw image stack
+        mask: np.ndarray, all masks stack
+    '''
+    # Load all labeled data and masks into memory
+    data = tiled_dataset.data_client[tiled_dataset.mask_idx]
+    mask = tiled_dataset.mask_client[:]
+    return data, mask
 
 
 def train(args):
     parameters = load_yaml(args.yaml_path)
     io_parameters, network, model_parameters = validate_parameters(parameters)
+    dataset = initialize_tiled_datasets(io_parameters)
+    data, mask = prepare_data_and_mask(dataset)
     
-
-    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
-    # Create Result Directory if not existed
-    create_directory(model_dir)
-
-    data_tiled_client = from_uri(
-        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
-    )
-    mask_tiled_client = None
-    if io_parameters.mask_tiled_uri:
-        mask_tiled_client = from_uri(
-            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
-        )
-    dataset = TiledDataset(
-        data_tiled_client=data_tiled_client,
-        mask_tiled_client=mask_tiled_client,
-        is_training=True,
-        using_qlty=False,
-        qlty_window=model_parameters.qlty_window,
-        qlty_step=model_parameters.qlty_step,
-        qlty_border=model_parameters.qlty_border,
-        transform=transforms.ToTensor(),
-    )
-
-    # Load all labeled data and masks into memory
-    data = dataset.data_client[dataset.mask_idx]
-    mask = dataset.mask_client[:]
 
     # train_loader, val_loader = train_val_split(dataset, model_parameters)
     train_loader, val_loader = crop_split_load(data, mask, model_parameters)
@@ -114,6 +102,9 @@ def train(args):
         )
         net, results = trainer.train_segmentation()  # training happens here
 
+        model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
+        # Create Result Directory if not existed
+        create_directory(model_dir)
         # Save network parameters
         model_params_path = os.path.join(
             model_dir, f"{io_parameters.uid_save}_{network}{idx+1}.pt"

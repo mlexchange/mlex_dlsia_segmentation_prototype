@@ -13,6 +13,8 @@ from parameters import (
     TUNet3PlusParameters,
     TUNetParameters,
 )
+from tiled_dataset import TiledDataset
+from torchvision import transforms
 
 def load_yaml(yaml_path):
     '''
@@ -64,7 +66,32 @@ def validate_parameters(parameters):
     print("Parameters loaded successfully.")
     return io_parameters, network, model_parameters
 
+def initialize_tiled_datasets(io_parameters):
+    '''
+    This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
+    Input:
+        io_parameters: class, all io parameters in pydantic class
+    Output:
+        dataset: class, TiledDataset
 
+    '''
+    data_tiled_client = from_uri(
+        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
+    )
+    mask_tiled_client = None
+    if io_parameters.mask_tiled_uri:
+        mask_tiled_client = from_uri(
+            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+        )
+    dataset = TiledDataset(
+        data_tiled_client=data_tiled_client,
+        mask_tiled_client=mask_tiled_client,
+        is_training=True,
+        using_qlty=False,
+        transform=transforms.ToTensor(),
+    )
+    return dataset
+ 
 
 # Create directory
 def create_directory(path):
