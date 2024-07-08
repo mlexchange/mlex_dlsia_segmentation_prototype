@@ -67,44 +67,44 @@ def train_val_split(dataset, parameters):
 
 def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
     # Normalize by clipping to 1% and 99% percentiles
-    low = np.percentile(images.ravel(), 1)
-    high = np.percentile(images.ravel(), 99)
-    images = np.clip((images - low) / (high - low), 0, 1)
+    # low = np.percentile(images.ravel(), 1)
+    # high = np.percentile(images.ravel(), 99)
+    # images = np.clip((images - low) / (high - low), 0, 1)
 
-    images = torch.from_numpy(images)
-    masks = torch.from_numpy(masks)
+    # images = torch.from_numpy(images)
+    # masks = torch.from_numpy(masks)
 
-    qlty_window = parameters.qlty_window
-    qlty_step = parameters.qlty_step
-    qlty_border = parameters.qlty_border
+    # qlty_window = parameters.qlty_window
+    # qlty_step = parameters.qlty_step
+    # qlty_border = parameters.qlty_border
 
-    if images.ndim == 3:
-        images = images.unsqueeze(1)
-    elif images.ndim == 2:
-        images = images.unsqueeze(0).unsqueeze(0)
+    # if images.ndim == 3:
+    #     images = images.unsqueeze(1)
+    # elif images.ndim == 2:
+    #     images = images.unsqueeze(0).unsqueeze(0)
 
-    if masks.ndim == 2:
-        masks = masks.unsqueeze(0)
+    # if masks.ndim == 2:
+    #     masks = masks.unsqueeze(0)
 
-    qlty_object = NCYXQuilt(
-        X=images.shape[-1],
-        Y=images.shape[-2],
-        window=(qlty_window, qlty_window),
-        step=(qlty_step, qlty_step),
-        border=(qlty_border, qlty_border),
-        border_weight=qlty_border_weight,
-    )
-    patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
-    # Clean up unlabeled patches
+    # qlty_object = NCYXQuilt(
+    #     X=images.shape[-1],
+    #     Y=images.shape[-2],
+    #     window=(qlty_window, qlty_window),
+    #     step=(qlty_step, qlty_step),
+    #     border=(qlty_border, qlty_border),
+    #     border_weight=qlty_border_weight,
+    # )
+    # patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
+    # # Clean up unlabeled patches
 
-    patched_images, patched_masks, _ = (
-        cleanup.weed_sparse_classification_training_pairs_2D(
-            patched_images,
-            patched_masks,
-            missing_label=-1,
-            border_tensor=qlty_object.border_tensor(),
-        )
-    )
+    # patched_images, patched_masks, _ = (
+    #     cleanup.weed_sparse_classification_training_pairs_2D(
+    #         patched_images,
+    #         patched_masks,
+    #         missing_label=-1,
+    #         border_tensor=qlty_object.border_tensor(),
+    #     )
+    # )
     dataset = TensorDataset(patched_images, patched_masks)
     # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
     train_loader_params = {

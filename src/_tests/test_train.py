@@ -1,8 +1,6 @@
-def test_data_and_mask(data_and_mask):
-    print(f'data_and_mask: {data_and_mask}, {data_and_mask[0]}, {data_and_mask[1]}')
-    data, mask = data_and_mask[0], data_and_mask[1]
-    assert len(data) == 2
-    assert len(mask) == 2
+def test_data_and_mask(raw_data, mask_array):
+    assert raw_data.shape == (2, 3, 3)
+    assert mask_array.shape == (2, 3, 3)
 
 
 # TODO: check dir creation? How to handle file system change during pytest?

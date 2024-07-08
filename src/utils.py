@@ -1,6 +1,7 @@
 import os
 from urllib.parse import urlparse, urlunparse
-
+from qlty.qlty2D import NCYXQuilt
+from qlty import cleanup
 import numpy as np
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
@@ -15,6 +16,7 @@ from parameters import (
 )
 from tiled_dataset import TiledDataset
 from torchvision import transforms
+import torch
 
 def load_yaml(yaml_path):
     '''
@@ -92,6 +94,95 @@ def initialize_tiled_datasets(io_parameters):
     )
     return dataset
  
+def normalization(image):
+    '''
+    This function normalizes the given image (stack) by clipping to 1% and 99% percentiles
+    Input:
+        image: np.ndarray, single image or the image stack array
+    Output:
+        normed_image: np.ndarray, normalized array
+    
+    '''
+    # Normalize by clipping to 1% and 99% percentiles
+    low = np.percentile(image.ravel(), 1)
+    high = np.percentile(image.ravel(), 99)
+    normed_image = np.clip((image - low) / (high - low), 0, 1)
+    return normed_image
+
+def array_to_tensor(array):
+    '''
+    This function converts numpy array to tensor
+    Input:
+        array: np.ndarray
+    Output:
+        tensor: pytorch tensor
+    '''
+    tensor = torch.from_numpy(array)
+    return tensor
+
+def build_qlty_object(width, height, window, step, border, border_weight=0.2):
+    '''
+    This function builds qlty object based on provided parameters.
+    Input:
+        width: int, width of the image to be cropped (2d_array.shape[-1])
+        height: int, height of the image to be cropped (2d_array.shape[-2])
+        window: int, cropping window size
+        step: int, moving step between tiles, affecting overlap
+        border: int, 
+        border_weight: float, default set to 0.2    
+    Output:
+        qlty_object: class, qlty object needed for cropping and stitching
+    '''
+    qlty_object = NCYXQuilt(
+        X = width,
+        Y = height,
+        window=(window, window),
+        step=(step, step),
+        border=(border, border),
+        border_weight=border_weight,
+    )
+    return qlty_object
+
+def crop_data_mask_pair(qlty_object, images, masks):
+    '''
+    This function crops the image and data pair into small tiles defined by the qlty_object, followed by cleaning of unlabeled patches
+    Input:
+        qlty_object: class, pre-built qlty object 
+        images: torch.Tensor, normalized image stack in tensor format
+        masks: torch.Tensor, masks in tensor
+    Output:
+        patched_images: patch stack of cropped image tiles in tensor form
+        patched_masks: corresponding stack of cropped mask tiles in tensor form
+    '''
+    if images.ndim == 3:
+        images = images.unsqueeze(1)
+    elif images.ndim == 2:
+        images = images.unsqueeze(0).unsqueeze(0)
+
+    if masks.ndim == 2:
+        masks = masks.unsqueeze(0)
+    
+    # Crop
+    patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
+    # Clean up unlabeled patches
+    patched_images, patched_masks, _ = (
+        cleanup.weed_sparse_classification_training_pairs_2D(
+            patched_images,
+            patched_masks,
+            missing_label=-1,
+            border_tensor=qlty_object.border_tensor(),
+        )
+    )
+    return patched_images, patched_masks
+
+
+
+
+
+
+
+
+
 
 # Create directory
 def create_directory(path):

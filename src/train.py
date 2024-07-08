@@ -20,7 +20,16 @@ from parameters import (
 )
 from seg_utils import crop_split_load
 from tiled_dataset import TiledDataset
-from utils import create_directory, load_yaml, validate_parameters, initialize_tiled_datasets
+from utils import (
+    create_directory, 
+    load_yaml, 
+    validate_parameters, 
+    initialize_tiled_datasets,
+    normalization,
+    array_to_tensor,
+    build_qlty_object,
+    crop_data_mask_pair,
+)
 
 def prepare_data_and_mask(tiled_dataset):
     '''
@@ -42,6 +51,19 @@ def train(args):
     io_parameters, network, model_parameters = validate_parameters(parameters)
     dataset = initialize_tiled_datasets(io_parameters)
     data, mask = prepare_data_and_mask(dataset)
+    data = normalization(data)
+    data = array_to_tensor(data)
+    mask = array_to_tensor(mask)
+    qlty_object = build_qlty_object(
+        width = dataset.data_client.shape[-1],
+        height = dataset.data_client.shape[-2],
+        window = model_parameters.qlty_window,
+        step = model_parameters.qlty_step,
+        border = model_parameters.qlty_border,
+        border_weight = 0.2,
+    )
+    patched_data, patched_mask = crop_data_mask_pair(qlty_object, data, mask)
+
     
 
     # train_loader, val_loader = train_val_split(dataset, model_parameters)

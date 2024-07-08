@@ -1,10 +1,12 @@
+import numpy as np
+import torch
+
 def test_load_yaml(parameters_dict):
     assert isinstance(parameters_dict, dict)
     assert 'io_parameters' in parameters_dict
     assert 'model_parameters' in parameters_dict
 
-def test_io_parameter_validation(parameters):
-    io_parameters = parameters[0]
+def test_io_parameter_validation(io_parameters):
     assert io_parameters.data_tiled_uri == "http://data/tiled/uri"
     assert io_parameters.data_tiled_api_key == "a1b2c3"
     assert io_parameters.mask_tiled_uri == "http://mask/tiled/uri"
@@ -14,12 +16,10 @@ def test_io_parameter_validation(parameters):
     assert io_parameters.uid_retrieve == "pytest1"
     assert io_parameters.models_dir == "."
 
-def test_network_name(parameters):
-    network = parameters[1]
-    assert network == 'TUNet'
+def test_network_name(network_name):
+    assert network_name == 'TUNet'
 
-def test_model_parameter_validation(parameters):
-    model_parameters = parameters[2]
+def test_model_parameter_validation(model_parameters):
     assert model_parameters.network == 'TUNet'
     assert model_parameters.num_classes == 3 
     assert model_parameters.num_epochs == 3 
@@ -30,9 +30,9 @@ def test_model_parameter_validation(parameters):
     assert model_parameters.activation == 'ReLU'
     assert model_parameters.normalization == 'BatchNorm2d'
     assert model_parameters.convolution == 'Conv2d'
-    assert model_parameters.qlty_window == 64
-    assert model_parameters.qlty_step == 32
-    assert model_parameters.qlty_border == 8
+    assert model_parameters.qlty_window == 2
+    assert model_parameters.qlty_step == 1
+    assert model_parameters.qlty_border == 1
     assert model_parameters.shuffle_train == True
     assert model_parameters.batch_size_train == 1 
     assert model_parameters.batch_size_val == 1 
@@ -44,5 +44,41 @@ def test_model_parameter_validation(parameters):
     assert model_parameters.hidden_rate == 1
 
 # TODO: Test examples for other model classes
+
+def test_normalization(normed_data):
+    assert type(normed_data) == np.ndarray
+    assert np.min(normed_data) == 0
+    assert np.max(normed_data) == 1
+
+def test_tensor_conversion(data_tensor, mask_tensor):
+    assert type(data_tensor) == torch.Tensor
+    assert data_tensor.shape == (2, 3, 3)
+    assert type(mask_tensor) == torch.Tensor
+    assert mask_tensor.shape == (2, 3, 3)
+
+def test_qlty_object(qlty_object):
+    # Detailed qlty tests should be part of the qlty package, thus not in the scope of this test
+    assert qlty_object
+    assert qlty_object.Y == 3
+    assert qlty_object.X == 3
+    assert qlty_object.window == (2, 2)
+    assert qlty_object.step == (1, 1)
+    assert qlty_object.border == (1, 1)
+    assert qlty_object.border_weight == 0.2
+
+def test_cropped_pairs(patched_data_mask_pair):
+    patched_data = patched_data_mask_pair[0]
+    patched_mask = patched_data_mask_pair[1]
+    print(patched_data.shape)
+    print(patched_data)
+    print(patched_mask.shape)
+    print(patched_mask)
+    assert patched_data.shape == (0, 1, 2, 2)
+    assert patched_mask.shape == (0, 2, 2)
+
+
+
+    
+
 
 
