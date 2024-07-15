@@ -54,13 +54,13 @@ def validate_parameters(parameters):
     network = raw_model_parameters["network"]
 
     model_parameters = None
-    if network == "MSDNet":
+    if network == "DLSIA MSDNet":
         model_parameters = MSDNetParameters(**raw_model_parameters)
-    elif network == "TUNet":
+    elif network == "DLSIA TUNet":
         model_parameters = TUNetParameters(**raw_model_parameters)
-    elif network == "TUNet3+":
+    elif network == "DLSIA TUNet3+":
         model_parameters = TUNet3PlusParameters(**raw_model_parameters)
-    elif network == "SMSNetEnsemble":
+    elif network == "DLSIA SMSNetEnsemble":
         model_parameters = SMSNetEnsembleParameters(**raw_model_parameters)
 
     assert model_parameters, f"Received Unsupported Network: {network}"

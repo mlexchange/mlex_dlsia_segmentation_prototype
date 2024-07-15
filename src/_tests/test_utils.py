@@ -17,10 +17,10 @@ def test_io_parameter_validation(io_parameters):
     assert io_parameters.models_dir == "."
 
 def test_network_name(network_name):
-    assert network_name == 'TUNet'
+    assert network_name == 'DLSIA TUNet'
 
 def test_model_parameter_validation(model_parameters):
-    assert model_parameters.network == 'TUNet'
+    assert model_parameters.network == 'DLSIA TUNet'
     assert model_parameters.num_classes == 3 
     assert model_parameters.num_epochs == 3 
     assert model_parameters.optimizer =='Adam'
