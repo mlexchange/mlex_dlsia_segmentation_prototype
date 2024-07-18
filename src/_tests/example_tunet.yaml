@@ -25,7 +25,7 @@ model_parameters:
 
   qlty_window: 2
   qlty_step: 1
-  qlty_border: 1
+  qlty_border: 0
 
   shuffle_train: True
   batch_size_train: 1

@@ -18,7 +18,6 @@ from parameters import (
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from seg_utils import crop_split_load
 from tiled_dataset import TiledDataset
 from utils import (
     create_directory, 
@@ -29,6 +28,7 @@ from utils import (
     array_to_tensor,
     build_qlty_object,
     crop_data_mask_pair,
+    construct_tensor_dataset,
 )
 
 def prepare_data_and_mask(tiled_dataset):
@@ -63,11 +63,8 @@ def train(args):
         border_weight = 0.2,
     )
     patched_data, patched_mask = crop_data_mask_pair(qlty_object, data, mask)
-
+    train_loader, val_loader = construct_tensor_dataset(patched_data, model_parameters, training = True, masks = patched_mask)
     
-
-    # train_loader, val_loader = train_val_split(dataset, model_parameters)
-    train_loader, val_loader = crop_split_load(data, mask, model_parameters)
 
     # Build network
     networks = build_network(

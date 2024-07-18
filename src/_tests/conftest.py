@@ -11,6 +11,7 @@ from ..utils import (
     array_to_tensor,
     build_qlty_object,
     crop_data_mask_pair,
+    construct_tensor_dataset
 )
 from ..train import prepare_data_and_mask
 from ..tiled_dataset import TiledDataset
@@ -134,6 +135,12 @@ def qlty_object(tiled_dataset, model_parameters):
 @pytest.fixture
 def patched_data_mask_pair(qlty_object, data_tensor, mask_tensor):
     patched_data, patched_mask = crop_data_mask_pair(qlty_object, data_tensor, mask_tensor)
-    yield patched_data, patched_mask        
+    yield patched_data, patched_mask  
 
+@pytest.fixture
+def training_dataloaders(patched_data_mask_pair, model_parameters):
+    patched_data = patched_data_mask_pair[0]
+    patched_mask = patched_data_mask_pair[1]
+    train_loader, val_loader = construct_tensor_dataset(patched_data, model_parameters, training = True, masks = patched_mask)
+    yield train_loader, val_loader
 

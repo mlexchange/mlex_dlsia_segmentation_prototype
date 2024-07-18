@@ -17,6 +17,7 @@ from parameters import (
 from tiled_dataset import TiledDataset
 from torchvision import transforms
 import torch
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
 def load_yaml(yaml_path):
     '''
@@ -174,6 +175,55 @@ def crop_data_mask_pair(qlty_object, images, masks):
         )
     )
     return patched_images, patched_masks
+
+def construct_tensor_dataset(images, parameters, training = False, masks = None):
+    '''
+    This function takes the given image stack and construct them into a pytorch dataloader. 
+    Handling both training scenario (where masks are provided as ground truth) 
+    and inference (where only images are needed).
+    When setting training = True, this function will also random split the dataset into training and validation
+    set based on the validation percentage given in the parameters.
+    Input:
+        images: pytorch tensor, processed image stack in tensor form
+        parameters: class, pydantic validated parameters 
+        training: bool, default set to False for inference, when set to True this is referred as training case
+        masks: pytorch tensor, corresponding mask stack in tensor form for ground truth
+    Output:
+        train_loader: pytorch dataloader for model training
+        val_loader: pytorch dataloader for model validation
+        inference_loader: pytorch dataloader for inference
+    '''
+    if training:
+        assert masks is not None, "Error: missing mask information when constructing training dataloaders."
+        dataset = TensorDataset(images, masks)
+        # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
+        train_loader_params = {
+            "batch_size": parameters.batch_size_train,
+            "shuffle": parameters.shuffle_train,
+            }
+        val_loader_params = {
+            "batch_size": parameters.batch_size_val, 
+            "shuffle": False,
+            }
+        val_pct = parameters.val_pct
+        val_size = max(int(val_pct * len(dataset)), 1) if len(dataset) > 1 else 0
+        if val_size == 0:
+            train_loader = DataLoader(dataset, **train_loader_params)
+            val_loader = None
+        else:
+            train_size = len(dataset) - val_size    
+            train_data, val_data = random_split(dataset, [train_size, val_size])
+            train_loader = DataLoader(train_data, **train_loader_params)
+            val_loader = DataLoader(val_data, **val_loader_params)
+        return train_loader, val_loader
+    else:
+        dataset = TensorDataset(images)
+        inference_loader_params = {
+            "batch_size": parameters.batch_size_inference,
+            "shuffle": False,
+            }
+        inference_loader = DataLoader(dataset, **inference_loader_params)
+        return inference_loader
 
 
 

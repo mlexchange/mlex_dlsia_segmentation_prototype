@@ -65,7 +65,7 @@ def train_val_split(dataset, parameters):
     return train_loader, val_loader
 
 
-def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
+# def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
     # Normalize by clipping to 1% and 99% percentiles
     # low = np.percentile(images.ravel(), 1)
     # high = np.percentile(images.ravel(), 99)
@@ -105,25 +105,25 @@ def crop_split_load(images, masks, parameters, qlty_border_weight=0.2):
     #         border_tensor=qlty_object.border_tensor(),
     #     )
     # )
-    dataset = TensorDataset(patched_images, patched_masks)
-    # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
-    train_loader_params = {
-        "batch_size": parameters.batch_size_train,
-        "shuffle": parameters.shuffle_train,
-    }
-    val_loader_params = {"batch_size": parameters.batch_size_val, "shuffle": False}
+    # dataset = TensorDataset(patched_images, patched_masks)
+    # # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
+    # train_loader_params = {
+    #     "batch_size": parameters.batch_size_train,
+    #     "shuffle": parameters.shuffle_train,
+    # }
+    # val_loader_params = {"batch_size": parameters.batch_size_val, "shuffle": False}
 
-    val_pct = parameters.val_pct
-    val_size = max(int(val_pct * len(dataset)), 1) if len(dataset) > 1 else 0
-    if val_size == 0:
-        train_loader = DataLoader(dataset, **train_loader_params)
-        val_loader = None
-    else:
-        train_size = len(dataset) - val_size
-        train_data, val_data = random_split(dataset, [train_size, val_size])
-        train_loader = DataLoader(train_data, **train_loader_params)
-        val_loader = DataLoader(val_data, **val_loader_params)
-    return train_loader, val_loader
+    # val_pct = parameters.val_pct
+    # val_size = max(int(val_pct * len(dataset)), 1) if len(dataset) > 1 else 0
+    # if val_size == 0:
+    #     train_loader = DataLoader(dataset, **train_loader_params)
+    #     val_loader = None
+    # else:
+    #     train_size = len(dataset) - val_size
+    #     train_data, val_data = random_split(dataset, [train_size, val_size])
+    #     train_loader = DataLoader(train_data, **train_loader_params)
+    #     val_loader = DataLoader(val_data, **val_loader_params)
+    # return train_loader, val_loader
 
 
 # Save Loss
@@ -469,24 +469,24 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
 
 
 def crop_seg_save(net, device, image, qlty_object, parameters, tiled_client, frame_idx):
-    assert image.ndim == 2
-    # Normalize by clipping to 1% and 99% percentiles
-    low = np.percentile(image.ravel(), 1)
-    high = np.percentile(image.ravel(), 99)
-    image = np.clip((image - low) / (high - low), 0, 1)
+    # assert image.ndim == 2
+    # # Normalize by clipping to 1% and 99% percentiles
+    # low = np.percentile(image.ravel(), 1)
+    # high = np.percentile(image.ravel(), 99)
+    # image = np.clip((image - low) / (high - low), 0, 1)
 
-    image = torch.from_numpy(image)
-    image = image.unsqueeze(0).unsqueeze(0)
+    # image = torch.from_numpy(image)
+    # image = image.unsqueeze(0).unsqueeze(0)
 
-    softmax = torch.nn.Softmax(dim=1)
-    # first patch up the image
-    patches = qlty_object.unstitch(image)
+    # softmax = torch.nn.Softmax(dim=1)
+    # # first patch up the image
+    # patches = qlty_object.unstitch(image)
 
-    inference_loader = DataLoader(
-        TensorDataset(patches),
-        shuffle=False,
-        batch_size=parameters.batch_size_inference,
-    )
+    # inference_loader = DataLoader(
+    #     TensorDataset(patches),
+    #     shuffle=False,
+    #     batch_size=parameters.batch_size_inference,
+    # )
 
     net.eval().to(device)  # send network to GPU
     results = []

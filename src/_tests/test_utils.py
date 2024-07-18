@@ -32,7 +32,7 @@ def test_model_parameter_validation(model_parameters):
     assert model_parameters.convolution == 'Conv2d'
     assert model_parameters.qlty_window == 2
     assert model_parameters.qlty_step == 1
-    assert model_parameters.qlty_border == 1
+    assert model_parameters.qlty_border == 0
     assert model_parameters.shuffle_train == True
     assert model_parameters.batch_size_train == 1 
     assert model_parameters.batch_size_val == 1 
@@ -63,7 +63,7 @@ def test_qlty_object(qlty_object):
     assert qlty_object.X == 3
     assert qlty_object.window == (2, 2)
     assert qlty_object.step == (1, 1)
-    assert qlty_object.border == (1, 1)
+    assert qlty_object.border == None
     assert qlty_object.border_weight == 0.2
 
 def test_cropped_pairs(patched_data_mask_pair):
@@ -73,8 +73,8 @@ def test_cropped_pairs(patched_data_mask_pair):
     print(patched_data)
     print(patched_mask.shape)
     print(patched_mask)
-    assert patched_data.shape == (0, 1, 2, 2)
-    assert patched_mask.shape == (0, 2, 2)
+    assert patched_data.shape == (8, 1, 2, 2)
+    assert patched_mask.shape == (8, 2, 2)
 
 
 
