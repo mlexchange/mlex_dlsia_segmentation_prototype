@@ -1,4 +1,4 @@
-qlty==0.1.7
+qlty==0.2.0
 dvclive==3.44.0
 dlsia==0.3.1
 pydantic==2.6.3
