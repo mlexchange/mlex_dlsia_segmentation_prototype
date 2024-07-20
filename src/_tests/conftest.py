@@ -11,11 +11,18 @@ from ..utils import (
     array_to_tensor,
     build_qlty_object,
     crop_data_mask_pair,
-    construct_tensor_dataset
+    construct_dataloaders,
+    find_device,
+    create_directory
 )
-from ..train import prepare_data_and_mask
+from ..train import (
+    prepare_data_and_mask,
+    build_criterion,
+    train_network
+)
 from ..tiled_dataset import TiledDataset
-
+from network import build_network
+import os
 
 @pytest.fixture
 def catalog(tmpdir):
@@ -44,9 +51,9 @@ def client(context):
     "Fixture for tests which only read data"
     client = from_context(context)
     recons_container = client.create_container("reconstructions")
-    recons_container.write_array(np.random.randint(0, 256, size=(5, 3, 3), dtype=np.uint8), key="recon1")
+    recons_container.write_array(np.random.randint(0, 256, size=(5, 4, 4), dtype=np.uint8), key="recon1")
     masks_container = client.create_container("uid0001", metadata={"mask_idx": ["1", "3"]}) # 2 slices
-    masks_container.write_array(np.ones((2, 3, 3), dtype=np.int8), key="mask")
+    masks_container.write_array(np.ones((2, 4, 4), dtype=np.int8), key="mask")
     yield client
 
 
@@ -141,6 +148,62 @@ def patched_data_mask_pair(qlty_object, data_tensor, mask_tensor):
 def training_dataloaders(patched_data_mask_pair, model_parameters):
     patched_data = patched_data_mask_pair[0]
     patched_mask = patched_data_mask_pair[1]
-    train_loader, val_loader = construct_tensor_dataset(patched_data, model_parameters, training = True, masks = patched_mask)
+    train_loader, val_loader = construct_dataloaders(patched_data, model_parameters, training = True, masks = patched_mask)
     yield train_loader, val_loader
+
+@pytest.fixture
+def networks(network_name, tiled_dataset, model_parameters):
+    networks = build_network(
+        network=network_name,
+        data_shape=(1,1,3,3), # TODO: Double check if this needs to be switched to the patch dim
+        num_classes=model_parameters.num_classes,
+        parameters=model_parameters,
+    )
+    yield networks
+
+@pytest.fixture
+def device():
+    device = find_device()
+    yield device
+
+@pytest.fixture
+def criterion(model_parameters, device):
+    criterion = build_criterion(model_parameters, device)
+    yield criterion
+
+@pytest.fixture
+def model_directory(io_parameters):
+    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
+    # Create Result Directory if not existed
+    create_directory(model_dir)
+    return model_dir
+
+@pytest.fixture
+def trained_network(
+    network_name,
+    networks,
+    io_parameters,
+    model_parameters,
+    device,
+    model_directory,
+    training_dataloaders,
+    criterion,
+    ):
+    net = train_network(
+        network_name = network_name, 
+        networks = networks,
+        io_parameters = io_parameters, 
+        model_parameters = model_parameters, 
+        device = device, 
+        model_dir = model_directory,
+        train_loader = training_dataloaders[0],
+        criterion = criterion,
+        val_loader = training_dataloaders[1],
+        use_dvclive=True,
+        use_savedvcexp=False
+    )
+    yield net
+
+
+
 

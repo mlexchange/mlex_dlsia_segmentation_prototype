@@ -1,8 +1,8 @@
 import torch
 
 def test_data_and_mask(raw_data, mask_array):
-    assert raw_data.shape == (2, 3, 3)
-    assert mask_array.shape == (2, 3, 3)
+    assert raw_data.shape == (2, 4, 4)
+    assert mask_array.shape == (2, 4, 4)
 
 def test_train_and_val_loader(training_dataloaders, model_parameters, patched_data_mask_pair):
     train_loader = training_dataloaders[0]
@@ -35,20 +35,17 @@ def test_train_and_val_loader(training_dataloaders, model_parameters, patched_da
         assert mask_batch.dtype == torch.int8
     # TODO: Add cases when val_loader is None due to low val_pct
 
-# TODO: check dir creation? How to handle file system change during pytest?
+def test_build_networks(networks):
+    print(networks[0])
+    assert networks
+    assert type(networks) == list
+    assert len(networks) == 1
+    assert networks[0]
+    # TODO: Test more aspects of the built network
 
-# TODO: load TiledDataset from fixture client, test already done.
+def test_criterion(criterion):
+    assert criterion
+    assert type(criterion) is torch.nn.modules.loss.CrossEntropyLoss
 
-# TODO: test data and mask array dim and shape
-
-# TODO: test train_loader and val_loader from crop_split_load func, check length
-
-# TODO: test build_network. How to deal with lengthy func? test all network options?
-
-# TODO: test weights and criterion?
-
-# TODO: test dvc?
-
-# TODO: test trainer building
-
-# TODO: test 1 epoch, check param saving
+def test_model_training(trained_network):
+    assert trained_network

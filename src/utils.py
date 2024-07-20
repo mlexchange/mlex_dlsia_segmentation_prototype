@@ -176,7 +176,7 @@ def crop_data_mask_pair(qlty_object, images, masks):
     )
     return patched_images, patched_masks
 
-def construct_tensor_dataset(images, parameters, training = False, masks = None):
+def construct_dataloaders(images, parameters, training = False, masks = None):
     '''
     This function takes the given image stack and construct them into a pytorch dataloader. 
     Handling both training scenario (where masks are provided as ground truth) 
@@ -225,14 +225,9 @@ def construct_tensor_dataset(images, parameters, training = False, masks = None)
         inference_loader = DataLoader(dataset, **inference_loader_params)
         return inference_loader
 
-
-
-
-
-
-
-
-
+def find_device():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    return device
 
 # Create directory
 def create_directory(path):

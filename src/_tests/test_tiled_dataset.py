@@ -14,10 +14,10 @@ def test_with_mask_training(client):
     assert len(tiled_dataset) == 2
     assert len(tiled_dataset[0]) == 2
     # Check data
-    assert tiled_dataset[0][0].shape == (3, 3)
+    assert tiled_dataset[0][0].shape == (4, 4)
     assert tiled_dataset[0][0].dtype == np.uint8
     # Check mask
-    assert tiled_dataset[0][1].shape == (3, 3)
+    assert tiled_dataset[0][1].shape == (4, 4)
     assert tiled_dataset[0][1].dtype == np.int8
     assert np.all(tiled_dataset[0][1])  # should be all 1s
 
@@ -32,7 +32,7 @@ def test_with_mask_inference(client):
     assert tiled_dataset.mask_idx == [1, 3]
     assert len(tiled_dataset) == 2
     # Check data
-    assert tiled_dataset[0].shape == (3, 3)
+    assert tiled_dataset[0].shape == (4, 4)
     assert tiled_dataset[0].dtype == np.uint8
 
 
@@ -44,7 +44,7 @@ def test_no_mask_inference(client):
     assert tiled_dataset
     assert len(tiled_dataset) == 5
     # Check data
-    assert tiled_dataset[0].shape == (3, 3)
+    assert tiled_dataset[0].shape == (4, 4)
     assert tiled_dataset[0].dtype == np.uint8
 
 
