@@ -3,6 +3,7 @@ import pytest
 from tiled.catalog import from_uri
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
+import time
 
 from ..utils import (
     load_yaml, 
@@ -51,9 +52,9 @@ def client(context):
     "Fixture for tests which only read data"
     client = from_context(context)
     recons_container = client.create_container("reconstructions")
-    recons_container.write_array(np.random.randint(0, 256, size=(5, 4, 4), dtype=np.uint8), key="recon1")
+    recons_container.write_array(np.random.randint(0, 256, size=(5, 6, 6), dtype=np.uint8), key="recon1")
     masks_container = client.create_container("uid0001", metadata={"mask_idx": ["1", "3"]}) # 2 slices
-    masks_container.write_array(np.ones((2, 4, 4), dtype=np.int8), key="mask")
+    masks_container.write_array(np.ones((2, 6, 6), dtype=np.int8), key="mask")
     yield client
 
 
@@ -155,7 +156,7 @@ def training_dataloaders(patched_data_mask_pair, model_parameters):
 def networks(network_name, tiled_dataset, model_parameters):
     networks = build_network(
         network=network_name,
-        data_shape=(1,1,3,3), # TODO: Double check if this needs to be switched to the patch dim
+        data_shape=tiled_dataset.data_client.shape, # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )
@@ -189,6 +190,8 @@ def trained_network(
     training_dataloaders,
     criterion,
     ):
+    # Record the training start time
+    start_time = time.time()
     net = train_network(
         network_name = network_name, 
         networks = networks,
@@ -202,7 +205,7 @@ def trained_network(
         use_dvclive=True,
         use_savedvcexp=False
     )
-    yield net
+    yield net, start_time
 
 
 
