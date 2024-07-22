@@ -5,8 +5,9 @@ from qlty import cleanup
 import numpy as np
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
-
+from network import baggin_smsnet_ensemble, load_network
 import yaml
+import glob
 from parameters import (
     IOParameters,
     MSDNetParameters,
@@ -69,11 +70,12 @@ def validate_parameters(parameters):
     print("Parameters loaded successfully.")
     return io_parameters, network, model_parameters
 
-def initialize_tiled_datasets(io_parameters):
+def initialize_tiled_datasets(io_parameters, is_training=True):
     '''
     This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
     Input:
         io_parameters: class, all io parameters in pydantic class
+        is_training: bool, whether the dataset is used for training or inference
     Output:
         dataset: class, TiledDataset
 
@@ -89,7 +91,7 @@ def initialize_tiled_datasets(io_parameters):
     dataset = TiledDataset(
         data_tiled_client=data_tiled_client,
         mask_tiled_client=mask_tiled_client,
-        is_training=True,
+        is_training=is_training,
         using_qlty=False,
         transform=transforms.ToTensor(),
     )
@@ -237,6 +239,21 @@ def create_directory(path):
     else:
         print(f"Local directory '{path}' already exsists.")
 
+def load_dlsia_network(network_name, model_dir):
+    '''
+    This function loads pre-trained DLSIA network. Support both single network and ensembles.
+    Input:
+        network: str, name of the DLSIA network to be loaded.
+        model_dir: str, path of the saved network.
+    Output:
+        net: loaded pre-trained network 
+    '''
+    if network_name == "DLSIA SMSNetEnsemble":
+        net = baggin_smsnet_ensemble(model_dir)
+    else:
+        net_files = glob.glob(os.path.join(model_dir, "*.pt"))
+        net = load_network(network_name, net_files[0])
+    return net
 
 def ensure_parent_containers(tiled_uri, tiled_api_key):
     parsed_url = urlparse(tiled_uri)
@@ -318,4 +335,9 @@ def allocate_array_space(
         key=array_name,
         metadata=metadata,
     )
+
+    print(
+        f"Result space allocated in Tiled and segmentation will be saved in {array_client.uri}."
+    )
+
     return array_client

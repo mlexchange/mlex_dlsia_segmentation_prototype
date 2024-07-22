@@ -81,5 +81,9 @@ def test_dir_creation(model_directory):
     assert os.path.exists(model_directory)
     assert os.path.isdir(model_directory)
 
-
-
+def test_load_network(loaded_network, trained_network):
+    assert loaded_network
+    trained_network = trained_network[0]
+    assert loaded_network.state_dict().keys() == trained_network.state_dict().keys()
+    for key in loaded_network.state_dict().keys():
+        assert torch.equal(loaded_network.state_dict()[key], trained_network.state_dict()[key]), f"Model weights in {key} do not match after loading."

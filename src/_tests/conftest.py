@@ -14,7 +14,8 @@ from ..utils import (
     crop_data_mask_pair,
     construct_dataloaders,
     find_device,
-    create_directory
+    create_directory,
+    load_dlsia_network
 )
 from ..train import (
     prepare_data_and_mask,
@@ -155,7 +156,7 @@ def training_dataloaders(patched_data_mask_pair, model_parameters):
 @pytest.fixture
 def networks(network_name, tiled_dataset, model_parameters):
     networks = build_network(
-        network=network_name,
+        network_name=network_name,
         data_shape=tiled_dataset.data_client.shape, # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
@@ -207,6 +208,9 @@ def trained_network(
     )
     yield net, start_time
 
-
+@pytest.fixture
+def loaded_network(network_name, model_directory):
+    net = load_dlsia_network(network_name=network_name, model_dir=model_directory)
+    yield net
 
 
