@@ -125,8 +125,8 @@ def train_network(network_name,
 
 def train(args):
     parameters = load_yaml(args.yaml_path)
-    io_parameters, network, model_parameters = validate_parameters(parameters)
-    dataset = initialize_tiled_datasets(io_parameters)
+    io_parameters, network_name, model_parameters = validate_parameters(parameters)
+    dataset = initialize_tiled_datasets(io_parameters, is_training=True)
     data, mask = prepare_data_and_mask(dataset)
     data = normalization(data)
     data = array_to_tensor(data)
@@ -143,7 +143,7 @@ def train(args):
     train_loader, val_loader = construct_dataloaders(patched_data, model_parameters, training = True, masks = patched_mask)
     # Build network
     networks = build_network(
-        network=network,
+        network=network_name,
         data_shape=dataset.data_client.shape, # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
@@ -157,7 +157,7 @@ def train(args):
     # Create Result Directory if not existed
     create_directory(model_dir)
     net = train_network(
-        network_name = network, 
+        network_name = network_name, 
         networks = networks,
         io_parameters = io_parameters, 
         model_parameters = model_parameters, 
