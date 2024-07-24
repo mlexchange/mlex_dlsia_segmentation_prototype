@@ -13,7 +13,7 @@ io_parameters:
   models_dir: .
 
 model_parameters:
-  network: "TUNet3+"
+  network: "DLSIA TUNet3+"
   num_classes: 3
   num_epochs: 3
   optimizer: "Adam"

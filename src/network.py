@@ -61,7 +61,6 @@ def build_tunet(
     activation,
     normalization,
 ):
-
     network = tunet.TUNet(
         image_shape=image_shape,
         in_channels=in_channels,
@@ -199,7 +198,7 @@ def build_smsnet_ensemble(
 
 
 def build_network(
-    network,
+    network_name,
     data_shape,
     num_classes,
     parameters,
@@ -210,7 +209,7 @@ def build_network(
     else:
         in_channels = data_shape[1]
         image_shape = data_shape[2:]
-
+    
     out_channels = num_classes
 
     if parameters.activation is not None:
@@ -223,7 +222,7 @@ def build_network(
     if parameters.convolution is not None:
         convolution = getattr(nn, parameters.convolution)
 
-    if network == "MSDNet":
+    if network_name == "DLSIA MSDNet":
         network = build_msdnet(
             in_channels,
             out_channels,
@@ -233,7 +232,7 @@ def build_network(
             convolution,
         )
 
-    elif network == "TUNet":
+    elif network_name == "DLSIA TUNet":
         network = build_tunet(
             in_channels,
             out_channels,
@@ -243,7 +242,7 @@ def build_network(
             normalization,
         )
 
-    elif network == "TUNet3+":
+    elif network_name == "DLSIA TUNet3+":
         network = build_tunet3plus(
             in_channels,
             out_channels,
@@ -253,7 +252,7 @@ def build_network(
             normalization,
         )
 
-    elif network == "SMSNetEnsemble":
+    elif network_name == "DLSIA SMSNetEnsemble":
         network = build_smsnet_ensemble(
             in_channels,
             out_channels,
@@ -264,17 +263,17 @@ def build_network(
 
 
 def load_network(
-    network,
+    network_name,
     params_path,
 ):
 
-    if network == "MSDNet":
+    if network_name == "DLSIA MSDNet":
         network = msdnet.MSDNetwork_from_file(params_path)
 
-    elif network == "TUNet":
+    elif network_name == "DLSIA TUNet":
         network = tunet.TUNetwork_from_file(params_path)
 
-    elif network == "TUNet3+":
+    elif network_name == "DLSIA TUNet3+":
         network = tunet3plus.TUNetwork3Plus_from_file(params_path)
 
     return network
