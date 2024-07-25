@@ -1,13 +1,18 @@
+import glob
 import os
 from urllib.parse import urlparse, urlunparse
-from qlty.qlty2D import NCYXQuilt
-from qlty import cleanup
+
 import numpy as np
+import torch
+import yaml
+from qlty import cleanup
+from qlty.qlty2D import NCYXQuilt
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
+from torch.utils.data import DataLoader, TensorDataset, random_split
+from torchvision import transforms
+
 from network import baggin_smsnet_ensemble, load_network
-import yaml
-import glob
 from parameters import (
     IOParameters,
     MSDNetParameters,
@@ -16,35 +21,34 @@ from parameters import (
     TUNetParameters,
 )
 from tiled_dataset import TiledDataset
-from torchvision import transforms
-import torch
-from torch.utils.data import DataLoader, TensorDataset, random_split
+
 
 def load_yaml(yaml_path):
-    '''
+    """
     This function loads parameters from the yaml file.
     Input:
         yaml_path: str, path of the yaml file.
     Output:
         parameters: dict, dictionary of all parameters.
-    '''
+    """
     # Open the YAML file for all parameters
     with open(yaml_path, "r") as file:
         # Load parameters
         parameters = yaml.safe_load(file)
         return parameters
 
+
 def validate_parameters(parameters):
-    '''
-    This function extracts parameters from the whole parameter dict 
-    and performs pydantic validation for both io-related and model-related parameters. 
+    """
+    This function extracts parameters from the whole parameter dict
+    and performs pydantic validation for both io-related and model-related parameters.
     Input:
         parameters: dict, parameters from the yaml file as a whole.
     Output:
         io_parameters: class, all io parameters in pydantic class
         network: str, name of the selected algorithm
         model_parameters: class, all model specific parameters in pydantic class
-    '''
+    """
     # Validate and load I/O related parameters
     io_parameters = parameters["io_parameters"]
     io_parameters = IOParameters(**io_parameters)
@@ -70,8 +74,9 @@ def validate_parameters(parameters):
     print("Parameters loaded successfully.")
     return io_parameters, network, model_parameters
 
+
 def initialize_tiled_datasets(io_parameters, is_training=True):
-    '''
+    """
     This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
     Input:
         io_parameters: class, all io parameters in pydantic class
@@ -79,7 +84,7 @@ def initialize_tiled_datasets(io_parameters, is_training=True):
     Output:
         dataset: class, TiledDataset
 
-    '''
+    """
     data_tiled_client = from_uri(
         io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
     )
@@ -96,49 +101,52 @@ def initialize_tiled_datasets(io_parameters, is_training=True):
         transform=transforms.ToTensor(),
     )
     return dataset
- 
+
+
 def normalization(image):
-    '''
+    """
     This function normalizes the given image (stack) by clipping to 1% and 99% percentiles
     Input:
         image: np.ndarray, single image or the image stack array
     Output:
         normed_image: np.ndarray, normalized array
-    
-    '''
+
+    """
     # Normalize by clipping to 1% and 99% percentiles
     low = np.percentile(image.ravel(), 1)
     high = np.percentile(image.ravel(), 99)
     normed_image = np.clip((image - low) / (high - low), 0, 1)
     return normed_image
 
+
 def array_to_tensor(array):
-    '''
+    """
     This function converts numpy array to tensor
     Input:
         array: np.ndarray
     Output:
         tensor: pytorch tensor
-    '''
+    """
     tensor = torch.from_numpy(array)
     return tensor
 
+
 def build_qlty_object(width, height, window, step, border, border_weight=0.2):
-    '''
+    """
     This function builds qlty object based on provided parameters.
     Input:
         width: int, width of the image to be cropped (2d_array.shape[-1])
         height: int, height of the image to be cropped (2d_array.shape[-2])
         window: int, cropping window size
         step: int, moving step between tiles, affecting overlap
-        border: int, 
-        border_weight: float, default set to 0.2    
+        border: int,
+        border_weight: float, default set to 0.2
     Output:
         qlty_object: class, qlty object needed for cropping and stitching
-    '''
+    """
     qlty_object = NCYXQuilt(
-        X = width,
-        Y = height,
+        X=width,
+        Y=height,
         window=(window, window),
         step=(step, step),
         border=(border, border),
@@ -146,17 +154,19 @@ def build_qlty_object(width, height, window, step, border, border_weight=0.2):
     )
     return qlty_object
 
+
 def crop_data_mask_pair(qlty_object, images, masks):
-    '''
-    This function crops the image and data pair into small tiles defined by the qlty_object, followed by cleaning of unlabeled patches
+    """
+    This function crops the image and data pair into small tiles defined by the qlty_object,
+    followed by cleaning of unlabeled patches
     Input:
-        qlty_object: class, pre-built qlty object 
+        qlty_object: class, pre-built qlty object
         images: torch.Tensor, normalized image stack in tensor format
         masks: torch.Tensor, masks in tensor
     Output:
         patched_images: patch stack of cropped image tiles in tensor form
         patched_masks: corresponding stack of cropped mask tiles in tensor form
-    '''
+    """
     if images.ndim == 3:
         images = images.unsqueeze(1)
     elif images.ndim == 2:
@@ -164,7 +174,7 @@ def crop_data_mask_pair(qlty_object, images, masks):
 
     if masks.ndim == 2:
         masks = masks.unsqueeze(0)
-    
+
     # Crop
     patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
     # Clean up unlabeled patches
@@ -178,42 +188,45 @@ def crop_data_mask_pair(qlty_object, images, masks):
     )
     return patched_images, patched_masks
 
-def construct_dataloaders(images, parameters, training = False, masks = None):
-    '''
-    This function takes the given image stack and construct them into a pytorch dataloader. 
-    Handling both training scenario (where masks are provided as ground truth) 
+
+def construct_dataloaders(images, parameters, training=False, masks=None):
+    """
+    This function takes the given image stack and construct them into a pytorch dataloader.
+    Handling both training scenario (where masks are provided as ground truth)
     and inference (where only images are needed).
     When setting training = True, this function will also random split the dataset into training and validation
     set based on the validation percentage given in the parameters.
     Input:
         images: pytorch tensor, processed image stack in tensor form
-        parameters: class, pydantic validated parameters 
+        parameters: class, pydantic validated parameters
         training: bool, default set to False for inference, when set to True this is referred as training case
         masks: pytorch tensor, corresponding mask stack in tensor form for ground truth
     Output:
         train_loader: pytorch dataloader for model training
         val_loader: pytorch dataloader for model validation
         inference_loader: pytorch dataloader for inference
-    '''
+    """
     if training:
-        assert masks is not None, "Error: missing mask information when constructing training dataloaders."
+        assert (
+            masks is not None
+        ), "Error: missing mask information when constructing training dataloaders."
         dataset = TensorDataset(images, masks)
         # Set Dataloader parameters (Note: we randomly shuffle the training set upon each pass)
         train_loader_params = {
             "batch_size": parameters.batch_size_train,
             "shuffle": parameters.shuffle_train,
-            }
+        }
         val_loader_params = {
-            "batch_size": parameters.batch_size_val, 
+            "batch_size": parameters.batch_size_val,
             "shuffle": False,
-            }
+        }
         val_pct = parameters.val_pct
         val_size = max(int(val_pct * len(dataset)), 1) if len(dataset) > 1 else 0
         if val_size == 0:
             train_loader = DataLoader(dataset, **train_loader_params)
             val_loader = None
         else:
-            train_size = len(dataset) - val_size    
+            train_size = len(dataset) - val_size
             train_data, val_data = random_split(dataset, [train_size, val_size])
             train_loader = DataLoader(train_data, **train_loader_params)
             val_loader = DataLoader(val_data, **val_loader_params)
@@ -223,13 +236,15 @@ def construct_dataloaders(images, parameters, training = False, masks = None):
         inference_loader_params = {
             "batch_size": parameters.batch_size_inference,
             "shuffle": False,
-            }
+        }
         inference_loader = DataLoader(dataset, **inference_loader_params)
         return inference_loader
+
 
 def find_device():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     return device
+
 
 # Create directory
 def create_directory(path):
@@ -239,21 +254,23 @@ def create_directory(path):
     else:
         print(f"Local directory '{path}' already exsists.")
 
+
 def load_dlsia_network(network_name, model_dir):
-    '''
+    """
     This function loads pre-trained DLSIA network. Support both single network and ensembles.
     Input:
         network: str, name of the DLSIA network to be loaded.
         model_dir: str, path of the saved network.
     Output:
-        net: loaded pre-trained network 
-    '''
+        net: loaded pre-trained network
+    """
     if network_name == "DLSIA SMSNetEnsemble":
         net = baggin_smsnet_ensemble(model_dir)
     else:
         net_files = glob.glob(os.path.join(model_dir, "*.pt"))
         net = load_network(network_name, net_files[0])
     return net
+
 
 def ensure_parent_containers(tiled_uri, tiled_api_key):
     parsed_url = urlparse(tiled_uri)

@@ -4,70 +4,74 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from dlsia.core.train_scripts import Trainer
 from dvclive import Live
 
 from network import build_network
-
 from utils import (
-    create_directory, 
-    load_yaml, 
-    validate_parameters, 
-    initialize_tiled_datasets,
-    normalization,
     array_to_tensor,
     build_qlty_object,
-    crop_data_mask_pair,
     construct_dataloaders,
+    create_directory,
+    crop_data_mask_pair,
     find_device,
+    initialize_tiled_datasets,
+    load_yaml,
+    normalization,
+    validate_parameters,
 )
 
+
 def prepare_data_and_mask(tiled_dataset):
-    '''
+    """
     This function extracts the data and mask array stack from the tiled dataset class
     Input:
         tiled_dataset: class
     Output:
         data: np.ndarray, all labeled raw image stack
         mask: np.ndarray, all masks stack
-    '''
+    """
     # Load all labeled data and masks into memory
     data = tiled_dataset.data_client[tiled_dataset.mask_idx]
     mask = tiled_dataset.mask_client[:]
     return data, mask
 
+
 def build_criterion(model_parameters, device, ignore_index=-1, size_average=None):
-    '''
+    """
     This function builds the criterion used for model training based on weights provided from the parameters,
     and pass to the device.
     Input:
-        model_parameters: class, pydantic validated model parameters 
+        model_parameters: class, pydantic validated model parameters
         device: torch.device object, cpu or gpu
     Output:
-        criterion: 
-    '''
+        criterion:
+    """
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
     # Convert the string to a list of floats
     weights = [float(x) for x in model_parameters.weights.strip("[]").split(",")]
     weights = torch.tensor(weights, dtype=torch.float).to(device)
-    criterion = criterion(weight=weights, ignore_index=ignore_index, size_average=size_average)
+    criterion = criterion(
+        weight=weights, ignore_index=ignore_index, size_average=size_average
+    )
     return criterion
 
 
-def train_network(network_name, 
-                  networks,
-                  io_parameters, 
-                  model_parameters, 
-                  device, 
-                  model_dir,
-                  train_loader,
-                  criterion,
-                  val_loader = None,
-                  use_dvclive=False,
-                  use_savedvcexp=False):
-    '''
+def train_network(
+    network_name,
+    networks,
+    io_parameters,
+    model_parameters,
+    device,
+    model_dir,
+    train_loader,
+    criterion,
+    val_loader=None,
+    use_dvclive=False,
+    use_savedvcexp=False,
+):
+    """
     This function builds the dlsia trainer based on the network (or ensemble) provided and performs training
     Input:
         network_name: str, model name to be trained
@@ -82,8 +86,8 @@ def train_network(network_name,
         use_dvclive: bool, whether to use dvclive to store model performance
         use_savedvcexp: bool, whether to use dvcexp
     Output:
-        net: trained model 
-    '''
+        net: trained model
+    """
     for idx, net in enumerate(networks):
         print(f"{network_name}: {idx+1}/{len(networks)}")
         optimizer = getattr(optim, model_parameters.optimizer)
@@ -123,6 +127,7 @@ def train_network(network_name,
     print(f"{network_name} trained successfully.")
     return net
 
+
 def train(args):
     parameters = load_yaml(args.yaml_path)
     io_parameters, network_name, model_parameters = validate_parameters(parameters)
@@ -132,19 +137,21 @@ def train(args):
     data = array_to_tensor(data)
     mask = array_to_tensor(mask)
     qlty_object = build_qlty_object(
-        width = dataset.data_client.shape[-1],
-        height = dataset.data_client.shape[-2],
-        window = model_parameters.qlty_window,
-        step = model_parameters.qlty_step,
-        border = model_parameters.qlty_border,
-        border_weight = 0.2,
+        width=dataset.data_client.shape[-1],
+        height=dataset.data_client.shape[-2],
+        window=model_parameters.qlty_window,
+        step=model_parameters.qlty_step,
+        border=model_parameters.qlty_border,
+        border_weight=0.2,
     )
     patched_data, patched_mask = crop_data_mask_pair(qlty_object, data, mask)
-    train_loader, val_loader = construct_dataloaders(patched_data, model_parameters, training = True, masks = patched_mask)
+    train_loader, val_loader = construct_dataloaders(
+        patched_data, model_parameters, training=True, masks=patched_mask
+    )
     # Build network
     networks = build_network(
         network=network_name,
-        data_shape=dataset.data_client.shape, # TODO: Double check if this needs to be switched to the patch dim
+        data_shape=dataset.data_client.shape,  # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )
@@ -157,21 +164,23 @@ def train(args):
     # Create Result Directory if not existed
     create_directory(model_dir)
     net = train_network(
-        network_name = network_name, 
-        networks = networks,
-        io_parameters = io_parameters, 
-        model_parameters = model_parameters, 
-        device = device, 
-        model_dir = model_dir,
-        train_loader = train_loader,
-        criterion = criterion,
-        val_loader = val_loader,
+        network_name=network_name,
+        networks=networks,
+        io_parameters=io_parameters,
+        model_parameters=model_parameters,
+        device=device,
+        model_dir=model_dir,
+        train_loader=train_loader,
+        criterion=criterion,
+        val_loader=val_loader,
         use_dvclive=True,
-        use_savedvcexp=False)
+        use_savedvcexp=False,
+    )
+    return net
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("yaml_path", type=str, help="path of yaml file for parameters")
     args = parser.parse_args()
-    train(args)
+    net = train(args)

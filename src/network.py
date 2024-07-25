@@ -209,7 +209,7 @@ def build_network(
     else:
         in_channels = data_shape[1]
         image_shape = data_shape[2:]
-    
+
     out_channels = num_classes
 
     if parameters.activation is not None:

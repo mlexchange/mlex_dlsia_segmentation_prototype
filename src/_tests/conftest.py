@@ -1,30 +1,29 @@
+import os
+import time
+
 import numpy as np
 import pytest
 from tiled.catalog import from_uri
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
-import time
 
+from network import build_network
+
+from ..tiled_dataset import TiledDataset
+from ..train import build_criterion, prepare_data_and_mask, train_network
 from ..utils import (
-    load_yaml, 
-    validate_parameters, 
-    normalization, 
     array_to_tensor,
     build_qlty_object,
-    crop_data_mask_pair,
     construct_dataloaders,
-    find_device,
     create_directory,
-    load_dlsia_network
+    crop_data_mask_pair,
+    find_device,
+    load_dlsia_network,
+    load_yaml,
+    normalization,
+    validate_parameters,
 )
-from ..train import (
-    prepare_data_and_mask,
-    build_criterion,
-    train_network
-)
-from ..tiled_dataset import TiledDataset
-from network import build_network
-import os
+
 
 @pytest.fixture
 def catalog(tmpdir):
@@ -53,8 +52,12 @@ def client(context):
     "Fixture for tests which only read data"
     client = from_context(context)
     recons_container = client.create_container("reconstructions")
-    recons_container.write_array(np.random.randint(0, 256, size=(5, 6, 6), dtype=np.uint8), key="recon1")
-    masks_container = client.create_container("uid0001", metadata={"mask_idx": ["1", "3"]}) # 2 slices
+    recons_container.write_array(
+        np.random.randint(0, 256, size=(5, 6, 6), dtype=np.uint8), key="recon1"
+    )
+    masks_container = client.create_container(
+        "uid0001", metadata={"mask_idx": ["1", "3"]}
+    )  # 2 slices
     masks_container.write_array(np.ones((2, 6, 6), dtype=np.int8), key="mask")
     yield client
 
@@ -71,7 +74,7 @@ def tiled_dataset(client):
 
 @pytest.fixture
 def yaml_path():
-    yaml_path = f'src/_tests/example_tunet.yaml'
+    yaml_path = "src/_tests/example_tunet.yaml"
     yield yaml_path
 
 
@@ -113,8 +116,8 @@ def mask_array(tiled_dataset):
 
 @pytest.fixture
 def normed_data(raw_data):
-   normed_data = normalization(raw_data)
-   yield normed_data
+    normed_data = normalization(raw_data)
+    yield normed_data
 
 
 @pytest.fixture
@@ -132,46 +135,56 @@ def mask_tensor(mask_array):
 @pytest.fixture
 def qlty_object(tiled_dataset, model_parameters):
     qlty_object = build_qlty_object(
-        width = tiled_dataset.data_client.shape[-1],
-        height = tiled_dataset.data_client.shape[-2],
-        window = model_parameters.qlty_window,
-        step = model_parameters.qlty_step,
-        border = model_parameters.qlty_border,
-        border_weight = 0.2
+        width=tiled_dataset.data_client.shape[-1],
+        height=tiled_dataset.data_client.shape[-2],
+        window=model_parameters.qlty_window,
+        step=model_parameters.qlty_step,
+        border=model_parameters.qlty_border,
+        border_weight=0.2,
     )
     yield qlty_object
 
+
 @pytest.fixture
 def patched_data_mask_pair(qlty_object, data_tensor, mask_tensor):
-    patched_data, patched_mask = crop_data_mask_pair(qlty_object, data_tensor, mask_tensor)
-    yield patched_data, patched_mask  
+    patched_data, patched_mask = crop_data_mask_pair(
+        qlty_object, data_tensor, mask_tensor
+    )
+    yield patched_data, patched_mask
+
 
 @pytest.fixture
 def training_dataloaders(patched_data_mask_pair, model_parameters):
     patched_data = patched_data_mask_pair[0]
     patched_mask = patched_data_mask_pair[1]
-    train_loader, val_loader = construct_dataloaders(patched_data, model_parameters, training = True, masks = patched_mask)
+    train_loader, val_loader = construct_dataloaders(
+        patched_data, model_parameters, training=True, masks=patched_mask
+    )
     yield train_loader, val_loader
+
 
 @pytest.fixture
 def networks(network_name, tiled_dataset, model_parameters):
     networks = build_network(
         network_name=network_name,
-        data_shape=tiled_dataset.data_client.shape, # TODO: Double check if this needs to be switched to the patch dim
+        data_shape=tiled_dataset.data_client.shape,  # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )
     yield networks
+
 
 @pytest.fixture
 def device():
     device = find_device()
     yield device
 
+
 @pytest.fixture
 def criterion(model_parameters, device):
     criterion = build_criterion(model_parameters, device)
     yield criterion
+
 
 @pytest.fixture
 def model_directory(io_parameters):
@@ -179,6 +192,7 @@ def model_directory(io_parameters):
     # Create Result Directory if not existed
     create_directory(model_dir)
     return model_dir
+
 
 @pytest.fixture
 def trained_network(
@@ -190,27 +204,26 @@ def trained_network(
     model_directory,
     training_dataloaders,
     criterion,
-    ):
+):
     # Record the training start time
     start_time = time.time()
     net = train_network(
-        network_name = network_name, 
-        networks = networks,
-        io_parameters = io_parameters, 
-        model_parameters = model_parameters, 
-        device = device, 
-        model_dir = model_directory,
-        train_loader = training_dataloaders[0],
-        criterion = criterion,
-        val_loader = training_dataloaders[1],
+        network_name=network_name,
+        networks=networks,
+        io_parameters=io_parameters,
+        model_parameters=model_parameters,
+        device=device,
+        model_dir=model_directory,
+        train_loader=training_dataloaders[0],
+        criterion=criterion,
+        val_loader=training_dataloaders[1],
         use_dvclive=True,
-        use_savedvcexp=False
+        use_savedvcexp=False,
     )
     yield net, start_time
+
 
 @pytest.fixture
 def loaded_network(network_name, model_directory):
     net = load_dlsia_network(network_name=network_name, model_dir=model_directory)
     yield net
-
-
