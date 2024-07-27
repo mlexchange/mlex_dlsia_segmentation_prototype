@@ -118,7 +118,7 @@ def normalization(image):
     normed_image = np.clip((image - low) / (high - low), 0, 1)
     return normed_image
 
-
+# TODO: Remove func and directly calling
 def array_to_tensor(array):
     """
     This function converts numpy array to tensor
@@ -130,7 +130,7 @@ def array_to_tensor(array):
     tensor = torch.from_numpy(array)
     return tensor
 
-
+# TODO: Remove func and directly calling
 def build_qlty_object(width, height, window, step, border, border_weight=0.2):
     """
     This function builds qlty object based on provided parameters.

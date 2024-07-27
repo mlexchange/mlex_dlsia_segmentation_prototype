@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import torch
+from utils import find_device
 
 
 def test_load_yaml(parameters_dict):
@@ -59,24 +60,6 @@ def test_normalization(normed_data):
     assert np.max(normed_data) == 1
 
 
-def test_tensor_conversion(data_tensor, mask_tensor):
-    assert type(data_tensor) is torch.Tensor
-    assert data_tensor.shape == (2, 6, 6)
-    assert type(mask_tensor) is torch.Tensor
-    assert mask_tensor.shape == (2, 6, 6)
-
-
-def test_qlty_object(qlty_object):
-    # Detailed qlty tests should be part of the qlty package, thus not in the scope of this test
-    assert qlty_object
-    assert qlty_object.Y == 6
-    assert qlty_object.X == 6
-    assert qlty_object.window == (4, 4)
-    assert qlty_object.step == (2, 2)
-    assert qlty_object.border == (1, 1)
-    assert qlty_object.border_weight == 0.2
-
-
 def test_cropped_pairs(patched_data_mask_pair):
     patched_data = patched_data_mask_pair[0]
     patched_mask = patched_data_mask_pair[1]
@@ -84,10 +67,17 @@ def test_cropped_pairs(patched_data_mask_pair):
     assert patched_mask.shape == (8, 4, 4)
 
 
-def test_device(device):
-    assert device
-    assert device.type == "cpu"
+def test_find_device_cuda_available(monkeypatch):
+    # Monkey patch torch.cuda.is_available to return True
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    device = find_device()
+    assert device.type == "cuda", "Device should be cuda when CUDA is available"
 
+def test_find_device_cuda_not_available(monkeypatch):
+    # Monkey patch torch.cuda.is_available to return False
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    device = find_device()
+    assert device.type == "cpu", "Device should be cpu when CUDA is not available"
 
 def test_dir_creation(model_directory):
     assert os.path.exists(model_directory)
