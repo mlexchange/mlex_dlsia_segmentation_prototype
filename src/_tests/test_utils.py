@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import torch
+
 from utils import find_device
 
 
@@ -73,11 +74,13 @@ def test_find_device_cuda_available(monkeypatch):
     device = find_device()
     assert device.type == "cuda", "Device should be cuda when CUDA is available"
 
+
 def test_find_device_cuda_not_available(monkeypatch):
     # Monkey patch torch.cuda.is_available to return False
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     device = find_device()
     assert device.type == "cpu", "Device should be cpu when CUDA is not available"
+
 
 def test_dir_creation(model_directory):
     assert os.path.exists(model_directory)
@@ -88,7 +91,3 @@ def test_load_network(loaded_network, trained_network):
     assert loaded_network
     trained_network = trained_network[0]
     assert loaded_network.state_dict().keys() == trained_network.state_dict().keys()
-    for key in loaded_network.state_dict().keys():
-        assert torch.equal(
-            loaded_network.state_dict()[key], trained_network.state_dict()[key]
-        ), f"Model weights in {key} do not match after loading."

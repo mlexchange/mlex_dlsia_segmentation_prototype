@@ -3,6 +3,9 @@ import time
 
 import numpy as np
 import pytest
+import torch
+import yaml
+from qlty.qlty2D import NCYXQuilt
 from tiled.catalog import from_uri
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
@@ -12,14 +15,11 @@ from network import build_network
 from ..tiled_dataset import TiledDataset
 from ..train import build_criterion, prepare_data_and_mask, train_network
 from ..utils import (
-    array_to_tensor,
-    build_qlty_object,
     construct_dataloaders,
     create_directory,
     crop_data_mask_pair,
     find_device,
     load_dlsia_network,
-    load_yaml,
     normalization,
     validate_parameters,
 )
@@ -73,14 +73,11 @@ def tiled_dataset(client):
 
 
 @pytest.fixture
-def yaml_path():
+def parameters_dict():
     yaml_path = "src/_tests/example_tunet.yaml"
-    yield yaml_path
-
-
-@pytest.fixture
-def parameters_dict(yaml_path):
-    parameters_dict = load_yaml(yaml_path)
+    with open(yaml_path, "r") as file:
+        # Load parameters
+        parameters_dict = yaml.safe_load(file)
     yield parameters_dict
 
 
@@ -122,24 +119,24 @@ def normed_data(raw_data):
 
 @pytest.fixture
 def data_tensor(normed_data):
-    data_tensor = array_to_tensor(normed_data)
+    data_tensor = torch.from_numpy(normed_data)
     yield data_tensor
 
 
 @pytest.fixture
 def mask_tensor(mask_array):
-    mask_tensor = array_to_tensor(mask_array)
+    mask_tensor = torch.from_numpy(mask_array)
     yield mask_tensor
 
 
 @pytest.fixture
 def qlty_object(tiled_dataset, model_parameters):
-    qlty_object = build_qlty_object(
-        width=tiled_dataset.data_client.shape[-1],
-        height=tiled_dataset.data_client.shape[-2],
-        window=model_parameters.qlty_window,
-        step=model_parameters.qlty_step,
-        border=model_parameters.qlty_border,
+    qlty_object = NCYXQuilt(
+        X=tiled_dataset.data_client.shape[-1],
+        Y=tiled_dataset.data_client.shape[-2],
+        window=(model_parameters.qlty_window, model_parameters.qlty_window),
+        step=(model_parameters.qlty_step, model_parameters.qlty_step),
+        border=(model_parameters.qlty_border, model_parameters.qlty_border),
         border_weight=0.2,
     )
     yield qlty_object

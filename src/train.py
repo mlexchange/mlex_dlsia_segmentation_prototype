@@ -4,19 +4,18 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import yaml
 from dlsia.core.train_scripts import Trainer
 from dvclive import Live
+from qlty.qlty2D import NCYXQuilt
 
 from network import build_network
 from utils import (
-    array_to_tensor,
-    build_qlty_object,
     construct_dataloaders,
     create_directory,
     crop_data_mask_pair,
     find_device,
     initialize_tiled_datasets,
-    load_yaml,
     normalization,
     validate_parameters,
 )
@@ -129,19 +128,21 @@ def train_network(
 
 
 def train(args):
-    parameters = load_yaml(args.yaml_path)
+    with open(args.yaml_path, "r") as file:
+        # Load parameters
+        parameters = yaml.safe_load(file)
     io_parameters, network_name, model_parameters = validate_parameters(parameters)
     dataset = initialize_tiled_datasets(io_parameters, is_training=True)
     data, mask = prepare_data_and_mask(dataset)
     data = normalization(data)
-    data = array_to_tensor(data)
-    mask = array_to_tensor(mask)
-    qlty_object = build_qlty_object(
-        width=dataset.data_client.shape[-1],
-        height=dataset.data_client.shape[-2],
-        window=model_parameters.qlty_window,
-        step=model_parameters.qlty_step,
-        border=model_parameters.qlty_border,
+    data = torch.from_numpy(data)
+    mask = torch.from_numpy(mask)
+    qlty_object = NCYXQuilt(
+        X=dataset.data_client.shape[-1],
+        Y=dataset.data_client.shape[-2],
+        window=(model_parameters.qlty_window, model_parameters.qlty_window),
+        step=(model_parameters.qlty_step, model_parameters.qlty_step),
+        border=(model_parameters.qlty_border, model_parameters.qlty_border),
         border_weight=0.2,
     )
     patched_data, patched_mask = crop_data_mask_pair(qlty_object, data, mask)
@@ -151,7 +152,9 @@ def train(args):
     # Build network
     networks = build_network(
         network=network_name,
-        data_shape=dataset.data_client.shape,  # TODO: Double check if this needs to be switched to the patch dim
+        data_shape=patched_data.shape[
+            -2:
+        ],  # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )

@@ -4,9 +4,7 @@ from urllib.parse import urlparse, urlunparse
 
 import numpy as np
 import torch
-import yaml
 from qlty import cleanup
-from qlty.qlty2D import NCYXQuilt
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 from torch.utils.data import DataLoader, TensorDataset, random_split
@@ -21,21 +19,6 @@ from parameters import (
     TUNetParameters,
 )
 from tiled_dataset import TiledDataset
-
-
-def load_yaml(yaml_path):
-    """
-    This function loads parameters from the yaml file.
-    Input:
-        yaml_path: str, path of the yaml file.
-    Output:
-        parameters: dict, dictionary of all parameters.
-    """
-    # Open the YAML file for all parameters
-    with open(yaml_path, "r") as file:
-        # Load parameters
-        parameters = yaml.safe_load(file)
-        return parameters
 
 
 def validate_parameters(parameters):
@@ -117,42 +100,6 @@ def normalization(image):
     high = np.percentile(image.ravel(), 99)
     normed_image = np.clip((image - low) / (high - low), 0, 1)
     return normed_image
-
-# TODO: Remove func and directly calling
-def array_to_tensor(array):
-    """
-    This function converts numpy array to tensor
-    Input:
-        array: np.ndarray
-    Output:
-        tensor: pytorch tensor
-    """
-    tensor = torch.from_numpy(array)
-    return tensor
-
-# TODO: Remove func and directly calling
-def build_qlty_object(width, height, window, step, border, border_weight=0.2):
-    """
-    This function builds qlty object based on provided parameters.
-    Input:
-        width: int, width of the image to be cropped (2d_array.shape[-1])
-        height: int, height of the image to be cropped (2d_array.shape[-2])
-        window: int, cropping window size
-        step: int, moving step between tiles, affecting overlap
-        border: int,
-        border_weight: float, default set to 0.2
-    Output:
-        qlty_object: class, qlty object needed for cropping and stitching
-    """
-    qlty_object = NCYXQuilt(
-        X=width,
-        Y=height,
-        window=(window, window),
-        step=(step, step),
-        border=(border, border),
-        border_weight=border_weight,
-    )
-    return qlty_object
 
 
 def crop_data_mask_pair(qlty_object, images, masks):
