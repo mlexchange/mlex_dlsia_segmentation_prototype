@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 from dlsia.core.train_scripts import segmentation_metrics
 from dvclive import Live
-from torch.utils.data import DataLoader, TensorDataset, random_split
+from torch.utils.data import DataLoader, random_split
 from torch.utils.data.dataloader import default_collate
 
 
@@ -469,37 +469,37 @@ def segment(net, device, inference_loader, qlty_object, tiled_client):
 def crop_seg_save(net, device, image, qlty_object, parameters, tiled_client, frame_idx):
     assert image.ndim == 2
     # Normalize by clipping to 1% and 99% percentiles
-    low = np.percentile(image.ravel(), 1)
-    high = np.percentile(image.ravel(), 99)
-    image = np.clip((image - low) / (high - low), 0, 1)
+    # low = np.percentile(image.ravel(), 1)
+    # high = np.percentile(image.ravel(), 99)
+    # image = np.clip((image - low) / (high - low), 0, 1)
 
-    image = torch.from_numpy(image)
-    image = image.unsqueeze(0).unsqueeze(0)
+    # image = torch.from_numpy(image)
+    # image = image.unsqueeze(0).unsqueeze(0)
 
-    softmax = torch.nn.Softmax(dim=1)
-    # first patch up the image
-    patches = qlty_object.unstitch(image)
+    # softmax = torch.nn.Softmax(dim=1)
+    # # first patch up the image
+    # patches = qlty_object.unstitch(image)
 
-    inference_loader = DataLoader(
-        TensorDataset(patches),
-        shuffle=False,
-        batch_size=parameters.batch_size_inference,
-    )
+    # inference_loader = DataLoader(
+    #     TensorDataset(patches),
+    #     shuffle=False,
+    #     batch_size=parameters.batch_size_inference,
+    # )
     # ===================progress line===================#
 
-    net.eval().to(device)  # send network to GPU
-    results = []
-    for batch in inference_loader:
-        with torch.no_grad():
-            torch.cuda.empty_cache()
-            patches = batch[0].type(torch.FloatTensor)
-            tmp = softmax(net(patches.to(device))).cpu()
-            results.append(tmp)
-    results = torch.cat(results)
-    stitched_result, _ = qlty_object.stitch(results)
-    seg_result = torch.argmax(stitched_result, dim=1).numpy().astype(np.int8)
-    # Write back to Tiled for the single frame
-    # TODO: Explore the use of threading to speed up this process.
-    tiled_client.write_block(seg_result, block=(frame_idx, 0, 0))
-    print(f"Frame {frame_idx+1} result saved to Tiled")
-    return seg_result
+    # net.eval().to(device)  # send network to GPU
+    # results = []
+    # for batch in inference_loader:
+    #     with torch.no_grad():
+    #         torch.cuda.empty_cache()
+    #         patches = batch[0].type(torch.FloatTensor)
+    #         tmp = softmax(net(patches.to(device))).cpu()
+    #         results.append(tmp)
+    # results = torch.cat(results)
+    # stitched_result, _ = qlty_object.stitch(results)
+    # seg_result = torch.argmax(stitched_result, dim=1).numpy().astype(np.int8)
+    # # Write back to Tiled for the single frame
+    # # TODO: Explore the use of threading to speed up this process.
+    # tiled_client.write_block(seg_result, block=(frame_idx, 0, 0))
+    # print(f"Frame {frame_idx+1} result saved to Tiled")
+    # return seg_result

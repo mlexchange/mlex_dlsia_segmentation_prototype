@@ -102,10 +102,11 @@ def normalization(image):
     return normed_image
 
 
-def crop_data_mask_pair(qlty_object, images, masks):
+def qlty_crop(qlty_object, images, is_training=False, masks=None):
     """
     This function crops the image and data pair into small tiles defined by the qlty_object,
-    followed by cleaning of unlabeled patches
+    followed by cleaning of unlabeled patches for training.
+    For inference
     Input:
         qlty_object: class, pre-built qlty object
         images: torch.Tensor, normalized image stack in tensor format
@@ -119,24 +120,28 @@ def crop_data_mask_pair(qlty_object, images, masks):
     elif images.ndim == 2:
         images = images.unsqueeze(0).unsqueeze(0)
 
-    if masks.ndim == 2:
-        masks = masks.unsqueeze(0)
+    if is_training:
+        if masks.ndim == 2:
+            masks = masks.unsqueeze(0)
 
-    # Crop
-    patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
-    # Clean up unlabeled patches
-    patched_images, patched_masks, _ = (
-        cleanup.weed_sparse_classification_training_pairs_2D(
-            patched_images,
-            patched_masks,
-            missing_label=-1,
-            border_tensor=qlty_object.border_tensor(),
+        # Crop
+        patched_images, patched_masks = qlty_object.unstitch_data_pair(images, masks)
+        # Clean up unlabeled patches
+        patched_images, patched_masks, _ = (
+            cleanup.weed_sparse_classification_training_pairs_2D(
+                patched_images,
+                patched_masks,
+                missing_label=-1,
+                border_tensor=qlty_object.border_tensor(),
+            )
         )
-    )
-    return patched_images, patched_masks
+        return patched_images, patched_masks
+    else:
+        patched_images = qlty_object.unstitch(images)
+        return patched_images
 
 
-def construct_dataloaders(images, parameters, training=False, masks=None):
+def construct_dataloaders(images, parameters, is_training=False, masks=None):
     """
     This function takes the given image stack and construct them into a pytorch dataloader.
     Handling both training scenario (where masks are provided as ground truth)
@@ -153,7 +158,7 @@ def construct_dataloaders(images, parameters, training=False, masks=None):
         val_loader: pytorch dataloader for model validation
         inference_loader: pytorch dataloader for inference
     """
-    if training:
+    if is_training:
         assert (
             masks is not None
         ), "Error: missing mask information when constructing training dataloaders."
@@ -219,7 +224,18 @@ def load_dlsia_network(network_name, model_dir):
     return net
 
 
-def ensure_parent_containers(tiled_uri, tiled_api_key):
+def ensure_parent_containers(tiled_uri, tiled_api_key=None):
+    """
+    This function ensures that all parent containers exist for a given Tiled uri.
+    If any parent container in the URI path does not exist, it is created.
+
+    Input:
+        tiled_uri: str, The URI of the Tiled resource.
+        tiled_api_key: str (optional), The API key for authentication. Default is None.
+
+    Output:
+        last_container: The final container in the uri path after ensuring all parent containers exist.
+    """
     parsed_url = urlparse(tiled_uri)
     path = parsed_url.path
     # Splitting path into parts
@@ -235,8 +251,10 @@ def ensure_parent_containers(tiled_uri, tiled_api_key):
             parsed_url.fragment,
         )
     )
-
-    last_container = from_uri(tiled_root, api_key=tiled_api_key)
+    if tiled_api_key is not None:
+        last_container = from_uri(tiled_root, api_key=tiled_api_key)
+    else:
+        last_container = from_uri(tiled_root)
 
     container_parts = path_parts[
         3:
@@ -252,16 +270,23 @@ def ensure_parent_containers(tiled_uri, tiled_api_key):
 # Tiled Saving
 def allocate_array_space(
     tiled_dataset,
-    seg_tiled_uri,
-    seg_tiled_api_key,
+    last_container,
     uid,
-    model,
+    model_name,
     array_name,
 ):
-
-    last_container = ensure_parent_containers(seg_tiled_uri, seg_tiled_api_key)
-
-    print(f"@@@@@@@@@@    last_container   {last_container.uri}")
+    """
+    This function allocates an array space based on the shape of the tiled_dataset provided
+    in order to save the segmentation result.
+    Input:
+        tiled_dataset: class TiledDataset object
+        last_container: parent tiled client container for array saving
+        uid: str, uid for saving
+        model_name: str, name of the model used for inference
+        array_name: str, result name
+    Output:
+        array_client: tiled client for result saving
+    """
     assert (
         uid not in last_container.keys()
     ), f"uid_save: {uid} already existed in Tiled Server"
@@ -290,7 +315,7 @@ def allocate_array_space(
         "mask_uri": mask_uri,
         "mask_idx": tiled_dataset.mask_idx,
         "uid": uid,
-        "model": model,
+        "model": model_name,
     }
 
     array_client = last_container.new(
@@ -305,3 +330,28 @@ def allocate_array_space(
     )
 
     return array_client
+
+
+def segment_single_frame(network, dataloader, final_layer, device):
+    """
+    This function segments a single frame using the given neural network and returns the segmentation results.
+
+    Input:
+        network: torch.nn.Module, The neural network model used for segmentation.
+        dataloader: torch.utils.data.DataLoader, DataLoader providing the data batches to be segmented.
+        final_layer: callable, A function or layer that processes the network output to obtain the final segmentation.
+        device: torch.device, The device (CPU or GPU) on which to perform the computations.
+
+    Output:
+        results: torch.Tensor, A tensor containing the concatenated segmentation results for all batches.
+    """
+    network.eval().to(device)
+    results = []
+    for batch in dataloader:
+        with torch.no_grad():
+            torch.cuda.empty_cache()
+            patches = batch[0].type(torch.FloatTensor)
+            tmp = final_layer(network(patches.to(device))).cpu()
+            results.append(tmp)
+    results = torch.cat(results)
+    return results

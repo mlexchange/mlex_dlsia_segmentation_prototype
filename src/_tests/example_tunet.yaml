@@ -7,6 +7,7 @@ io_parameters:
   mask_tiled_uri: "http://mask/tiled/uri"
   mask_tiled_api_key: d4e5f6
   seg_tiled_uri: "http://seg/tiled/uri"
+  seg_tiled_api_key: g7h8i9
   uid_save: pytest1
   uid_retrieve: pytest1
   models_dir: .

@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import tiled
 import torch
 
 from utils import find_device
@@ -18,6 +19,7 @@ def test_io_parameter_validation(io_parameters):
     assert io_parameters.mask_tiled_uri == "http://mask/tiled/uri"
     assert io_parameters.mask_tiled_api_key == "d4e5f6"
     assert io_parameters.seg_tiled_uri == "http://seg/tiled/uri"
+    assert io_parameters.seg_tiled_api_key == "g7h8i9"
     assert io_parameters.uid_save == "pytest1"
     assert io_parameters.uid_retrieve == "pytest1"
     assert io_parameters.models_dir == "."
@@ -91,3 +93,29 @@ def test_load_network(loaded_network, trained_network):
     assert loaded_network
     trained_network = trained_network[0]
     assert loaded_network.state_dict().keys() == trained_network.state_dict().keys()
+
+
+# TODO: Discuss error and fix this pytest
+# def test_seg_parent_container(client):
+#     print(client.uri)
+#     print(client)
+#     last_container = ensure_parent_containers(client.uri)
+#     assert last_container
+
+
+def test_seg_client(seg_client):
+    assert seg_client
+    assert type(seg_client) is tiled.client.array.ArrayClient
+    assert (
+        seg_client.uri
+        == "http://local-tiled-app/api/v1/metadata/results/pytest1/seg_result"
+    )
+    assert seg_client.shape == (2, 6, 6)
+    metadata = {
+        "data_uri": "http://local-tiled-app/api/v1/metadata/reconstructions/recon1",
+        "mask_uri": "http://local-tiled-app/api/v1/metadata/uid0001/mask",
+        "mask_idx": [1, 3],
+        "uid": "pytest1",
+        "model": "DLSIA TUNet",
+    }
+    assert seg_client.metadata == metadata

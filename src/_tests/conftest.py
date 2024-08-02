@@ -15,12 +15,14 @@ from network import build_network
 from ..tiled_dataset import TiledDataset
 from ..train import build_criterion, prepare_data_and_mask, train_network
 from ..utils import (
+    allocate_array_space,
     construct_dataloaders,
     create_directory,
-    crop_data_mask_pair,
     find_device,
     load_dlsia_network,
     normalization,
+    qlty_crop,
+    segment_single_frame,
     validate_parameters,
 )
 
@@ -144,8 +146,8 @@ def qlty_object(tiled_dataset, model_parameters):
 
 @pytest.fixture
 def patched_data_mask_pair(qlty_object, data_tensor, mask_tensor):
-    patched_data, patched_mask = crop_data_mask_pair(
-        qlty_object, data_tensor, mask_tensor
+    patched_data, patched_mask = qlty_crop(
+        qlty_object, data_tensor, is_training=True, masks=mask_tensor
     )
     yield patched_data, patched_mask
 
@@ -155,7 +157,7 @@ def training_dataloaders(patched_data_mask_pair, model_parameters):
     patched_data = patched_data_mask_pair[0]
     patched_mask = patched_data_mask_pair[1]
     train_loader, val_loader = construct_dataloaders(
-        patched_data, model_parameters, training=True, masks=patched_mask
+        patched_data, model_parameters, is_training=True, masks=patched_mask
     )
     yield train_loader, val_loader
 
@@ -224,3 +226,70 @@ def trained_network(
 def loaded_network(network_name, model_directory):
     net = load_dlsia_network(network_name=network_name, model_dir=model_directory)
     yield net
+
+
+@pytest.fixture
+def seg_tiled_dataset(client):
+    tiled_dataset = TiledDataset(
+        data_tiled_client=client["reconstructions"]["recon1"],
+        mask_tiled_client=client["uid0001"],
+        is_training=False,
+    )
+    yield tiled_dataset
+
+
+@pytest.fixture
+def seg_client(client, seg_tiled_dataset, io_parameters, network_name):
+    result_container = client.create_container("results")
+    array_client = allocate_array_space(
+        tiled_dataset=seg_tiled_dataset,
+        last_container=result_container,
+        uid=io_parameters.uid_save,
+        model_name=network_name,
+        array_name="seg_result",
+    )
+    yield array_client
+
+
+@pytest.fixture
+def inference_patches(seg_tiled_dataset, qlty_object):
+    image = seg_tiled_dataset[0]
+    image = normalization(image)
+    image = torch.from_numpy(image)
+    patches = qlty_crop(qlty_object=qlty_object, images=image, is_training=False)
+    yield patches
+
+
+@pytest.fixture
+def inference_dataloader(inference_patches, model_parameters):
+    inference_loader = construct_dataloaders(
+        inference_patches, model_parameters, is_training=False
+    )
+    yield inference_loader
+
+
+@pytest.fixture
+def prediction(loaded_network, inference_dataloader, device):
+    softmax = torch.nn.Softmax(dim=1)
+    prediction = segment_single_frame(
+        network=loaded_network,
+        dataloader=inference_dataloader,
+        final_layer=softmax,
+        device=device,
+    )
+    yield prediction
+
+
+@pytest.fixture
+def result(prediction, qlty_object, seg_client):
+    stitched_prediction, _ = qlty_object.stitch(prediction)
+    result = torch.argmax(stitched_prediction, dim=1).numpy().astype(np.int8)
+    seg_client.write_block(result, block=(0, 0, 0))
+    yield result
+
+    # softmax = torch.nn.Softmax(dim=1)
+    # prediction = segment_single_frame(network = net, dataloader = inference_loader, final_layer = softmax)
+    # stitched_prediction, _ = qlty_object.stitch(prediction)
+    # result = torch.argmax(stitched_prediction, dim=1).numpy().astype(np.int8)
+    # seg_client.write_block(result, block=(idx, 0, 0))
+    # print(f"Frame {idx+1} result saved to Tiled")
