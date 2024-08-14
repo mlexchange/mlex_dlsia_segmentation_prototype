@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 import yaml
 from dlsia.core.train_scripts import Trainer
-from dvclive import Live
 from qlty.qlty2D import NCYXQuilt
 
 from network import build_network
@@ -98,6 +97,8 @@ def train_network(
         net = net.to(device)
 
         if use_dvclive:
+            from dvclive import Live
+
             dvclive_savepath = f"{model_dir}/dvc_metrics"
             dvclive = Live(dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp)
         else:
