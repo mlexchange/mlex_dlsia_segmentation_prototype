@@ -1,5 +1,10 @@
 import torch
 
+def test_load_network(loaded_network, trained_network):
+    assert loaded_network
+    trained_network = trained_network[0]
+    assert loaded_network.state_dict().keys() == trained_network.state_dict().keys()
+    
 
 def test_inference_cropping(inference_patches):
     assert inference_patches.shape == (4, 1, 4, 4)

@@ -1,7 +1,5 @@
 import numpy as np
-
 from ..tiled_dataset import TiledDataset
-
 
 def test_with_mask_training(client):
     tiled_dataset = TiledDataset(

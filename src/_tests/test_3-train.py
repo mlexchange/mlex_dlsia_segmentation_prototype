@@ -1,7 +1,5 @@
 import os
-
 import torch
-
 
 def test_data_and_mask(raw_data, mask_array):
     assert raw_data.shape == (2, 6, 6)
@@ -83,7 +81,7 @@ def test_model_training(trained_network, model_directory, io_parameters, network
     assert (
         file_mod_time > start_time
     ), "The model .pt file is not the new one just saved."
-    dvc_path = os.path.join(model_directory, "dvc_metrics")
-    assert os.path.exists(dvc_path)
-    assert os.path.isdir(dvc_path)
-    # TODO: Negative test cases when not use dvclive, keep in mind of pre-existing directories
+    # TODO: Positive test cases using dvclive, figure out the way to run dvc init --no-scm with pytest
+    # dvc_path = os.path.join(model_directory, "dvc_metrics")
+    # assert os.path.exists(dvc_path)
+    # assert os.path.isdir(dvc_path)

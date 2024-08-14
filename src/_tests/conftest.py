@@ -216,7 +216,7 @@ def trained_network(
         train_loader=training_dataloaders[0],
         criterion=criterion,
         val_loader=training_dataloaders[1],
-        use_dvclive=True,
+        use_dvclive=False,
         use_savedvcexp=False,
     )
     yield net, start_time

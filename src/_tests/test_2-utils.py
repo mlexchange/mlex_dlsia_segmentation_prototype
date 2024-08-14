@@ -1,11 +1,9 @@
 import os
-
 import numpy as np
 import tiled
 import torch
 
 from utils import find_device
-
 
 def test_load_yaml(parameters_dict):
     assert isinstance(parameters_dict, dict)
@@ -87,12 +85,6 @@ def test_find_device_cuda_not_available(monkeypatch):
 def test_dir_creation(model_directory):
     assert os.path.exists(model_directory)
     assert os.path.isdir(model_directory)
-
-
-def test_load_network(loaded_network, trained_network):
-    assert loaded_network
-    trained_network = trained_network[0]
-    assert loaded_network.state_dict().keys() == trained_network.state_dict().keys()
 
 
 # TODO: Discuss error and fix this pytest
