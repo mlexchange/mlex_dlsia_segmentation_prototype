@@ -1,30 +1,15 @@
 import os
-import time
 
 import numpy as np
 import pytest
-import torch
 import yaml
 from qlty.qlty2D import NCYXQuilt
 from tiled.catalog import from_uri
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
 
-from network import build_network
-
 from ..tiled_dataset import TiledDataset
-from ..train import build_criterion, prepare_data_and_mask, train_network
-from ..utils import (
-    allocate_array_space,
-    construct_dataloaders,
-    create_directory,
-    find_device,
-    load_dlsia_network,
-    normalization,
-    qlty_crop,
-    segment_single_frame,
-    validate_parameters,
-)
+from ..utils import create_directory, find_device, validate_parameters
 
 
 @pytest.fixture
@@ -102,33 +87,11 @@ def model_parameters(parameters_dict):
 
 
 @pytest.fixture
-def raw_data(tiled_dataset):
-    data, _ = prepare_data_and_mask(tiled_dataset)
-    yield data
-
-
-@pytest.fixture
-def mask_array(tiled_dataset):
-    _, mask = prepare_data_and_mask(tiled_dataset)
-    yield mask
-
-
-@pytest.fixture
-def normed_data(raw_data):
-    normed_data = normalization(raw_data)
-    yield normed_data
-
-
-@pytest.fixture
-def data_tensor(normed_data):
-    data_tensor = torch.from_numpy(normed_data)
-    yield data_tensor
-
-
-@pytest.fixture
-def mask_tensor(mask_array):
-    mask_tensor = torch.from_numpy(mask_array)
-    yield mask_tensor
+def model_directory(io_parameters):
+    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
+    # Create Result Directory if not existed
+    create_directory(model_dir)
+    return model_dir
 
 
 @pytest.fixture
@@ -145,151 +108,6 @@ def qlty_object(tiled_dataset, model_parameters):
 
 
 @pytest.fixture
-def patched_data_mask_pair(qlty_object, data_tensor, mask_tensor):
-    patched_data, patched_mask = qlty_crop(
-        qlty_object, data_tensor, is_training=True, masks=mask_tensor
-    )
-    yield patched_data, patched_mask
-
-
-@pytest.fixture
-def training_dataloaders(patched_data_mask_pair, model_parameters):
-    patched_data = patched_data_mask_pair[0]
-    patched_mask = patched_data_mask_pair[1]
-    train_loader, val_loader = construct_dataloaders(
-        patched_data, model_parameters, is_training=True, masks=patched_mask
-    )
-    yield train_loader, val_loader
-
-
-@pytest.fixture
-def networks(network_name, tiled_dataset, model_parameters):
-    networks = build_network(
-        network_name=network_name,
-        data_shape=tiled_dataset.data_client.shape,  # TODO: Double check if this needs to be switched to the patch dim
-        num_classes=model_parameters.num_classes,
-        parameters=model_parameters,
-    )
-    yield networks
-
-
-@pytest.fixture
 def device():
     device = find_device()
     yield device
-
-
-@pytest.fixture
-def criterion(model_parameters, device):
-    criterion = build_criterion(model_parameters, device)
-    yield criterion
-
-
-@pytest.fixture
-def model_directory(io_parameters):
-    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
-    # Create Result Directory if not existed
-    create_directory(model_dir)
-    return model_dir
-
-
-@pytest.fixture
-def trained_network(
-    network_name,
-    networks,
-    io_parameters,
-    model_parameters,
-    device,
-    model_directory,
-    training_dataloaders,
-    criterion,
-):
-    # Record the training start time
-    start_time = time.time()
-    net = train_network(
-        network_name=network_name,
-        networks=networks,
-        io_parameters=io_parameters,
-        model_parameters=model_parameters,
-        device=device,
-        model_dir=model_directory,
-        train_loader=training_dataloaders[0],
-        criterion=criterion,
-        val_loader=training_dataloaders[1],
-        use_dvclive=False,
-        use_savedvcexp=False,
-    )
-    yield net, start_time
-
-
-@pytest.fixture
-def loaded_network(network_name, model_directory):
-    net = load_dlsia_network(network_name=network_name, model_dir=model_directory)
-    yield net
-
-
-@pytest.fixture
-def seg_tiled_dataset(client):
-    tiled_dataset = TiledDataset(
-        data_tiled_client=client["reconstructions"]["recon1"],
-        mask_tiled_client=client["uid0001"],
-        is_training=False,
-    )
-    yield tiled_dataset
-
-
-@pytest.fixture
-def seg_client(client, seg_tiled_dataset, io_parameters, network_name):
-    result_container = client.create_container("results")
-    array_client = allocate_array_space(
-        tiled_dataset=seg_tiled_dataset,
-        last_container=result_container,
-        uid=io_parameters.uid_save,
-        model_name=network_name,
-        array_name="seg_result",
-    )
-    yield array_client
-
-
-@pytest.fixture
-def inference_patches(seg_tiled_dataset, qlty_object):
-    image = seg_tiled_dataset[0]
-    image = normalization(image)
-    image = torch.from_numpy(image)
-    patches = qlty_crop(qlty_object=qlty_object, images=image, is_training=False)
-    yield patches
-
-
-@pytest.fixture
-def inference_dataloader(inference_patches, model_parameters):
-    inference_loader = construct_dataloaders(
-        inference_patches, model_parameters, is_training=False
-    )
-    yield inference_loader
-
-
-@pytest.fixture
-def prediction(loaded_network, inference_dataloader, device):
-    softmax = torch.nn.Softmax(dim=1)
-    prediction = segment_single_frame(
-        network=loaded_network,
-        dataloader=inference_dataloader,
-        final_layer=softmax,
-        device=device,
-    )
-    yield prediction
-
-
-@pytest.fixture
-def result(prediction, qlty_object, seg_client):
-    stitched_prediction, _ = qlty_object.stitch(prediction)
-    result = torch.argmax(stitched_prediction, dim=1).numpy().astype(np.int8)
-    seg_client.write_block(result, block=(0, 0, 0))
-    yield result
-
-    # softmax = torch.nn.Softmax(dim=1)
-    # prediction = segment_single_frame(network = net, dataloader = inference_loader, final_layer = softmax)
-    # stitched_prediction, _ = qlty_object.stitch(prediction)
-    # result = torch.argmax(stitched_prediction, dim=1).numpy().astype(np.int8)
-    # seg_client.write_block(result, block=(idx, 0, 0))
-    # print(f"Frame {idx+1} result saved to Tiled")
