@@ -201,7 +201,7 @@ def partial_inference(
         tiled_dataset=dataset,
         last_container=last_container,
         uid=io_parameters.uid_save,
-        model=network_name,
+        model_name=network_name,
         array_name="seg_result",
     )
     softmax = torch.nn.Softmax(dim=1)
@@ -214,7 +214,7 @@ def partial_inference(
             patches, model_parameters, is_training=False
         )
         prediction = segment_single_frame(
-            network=net, dataloader=inference_loader, final_layer=softmax
+            network=net, dataloader=inference_loader, final_layer=softmax, device=device
         )
         stitched_prediction, _ = qlty_object.stitch(prediction)
         result = torch.argmax(stitched_prediction, dim=1).numpy().astype(np.int8)
