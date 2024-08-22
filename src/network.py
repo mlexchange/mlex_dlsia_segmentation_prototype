@@ -203,10 +203,14 @@ def build_network(
     num_classes,
     parameters,
 ):
+    assert len(data_shape) > 1, "data_shape must be in dim > 1"
+    if len(data_shape) == 2:
+        in_channels = 1
+        image_shape = data_shape
     if len(data_shape) == 3:
         in_channels = 1
         image_shape = data_shape[1:]
-    else:
+    else:  # 4D array
         in_channels = data_shape[1]
         image_shape = data_shape[2:]
 
