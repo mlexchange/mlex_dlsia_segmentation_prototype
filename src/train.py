@@ -154,19 +154,19 @@ def train(args):
         qlty_object, data, is_training=True, masks=mask
     )
     train_loader, val_loader = construct_dataloaders(
-        patched_data, model_parameters, training=True, masks=patched_mask
+        patched_data, model_parameters, is_training=True, masks=patched_mask
     )
     # Build network
     networks = build_network(
-        network=network_name,
+        network_name=network_name,
         data_shape=patched_data.shape[
             -2:
         ],  # TODO: Double check if this needs to be switched to the patch dim
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )
+    print(networks)
     device = find_device()
-    print(f"      MEMORY ALLOCATED   {torch.cuda.memory_allocated(0)}")
     torch.cuda.empty_cache()
     print(f"Training will be processed on: {device}")
     criterion = build_criterion(model_parameters, device)
