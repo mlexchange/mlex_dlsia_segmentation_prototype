@@ -3,13 +3,13 @@
 # I/O
 io_parameters:
   data_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/reconstruction/rec20190524_085542_clay_testZMQ_8bit/20190524_085542_clay_testZMQ_
-  data_tiled_api_key: 
+  data_tiled_api_key:
   mask_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/user1/rec20190524_085542_clay_testZMQ_8bit/pytest
-  mask_tiled_api_key: 
+  mask_tiled_api_key:
   seg_tiled_uri: http://0.0.0.0:8888/api/v1/metadata/mlex_store/rec20190524_085542_clay_testZMQ_8bit/results
-  seg_tiled_api_key: 
-  uid_save: 
-  uid_retrieve: 
+  seg_tiled_api_key:
+  uid_save:
+  uid_retrieve:
   models_dir: .
 
 model_parameters:
