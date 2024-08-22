@@ -159,13 +159,11 @@ def train(args):
     # Build network
     networks = build_network(
         network_name=network_name,
-        data_shape=patched_data.shape[
-            -2:
-        ],  # TODO: Double check if this needs to be switched to the patch dim
+        data_shape=patched_data.shape,  # TODO: Double check if this needs to be switched to the patch dim
+        # data_shape=dataset.data_client.shape,
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )
-    print(networks)
     device = find_device()
     torch.cuda.empty_cache()
     print(f"Training will be processed on: {device}")
