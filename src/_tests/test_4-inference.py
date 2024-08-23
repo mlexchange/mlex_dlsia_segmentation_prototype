@@ -26,6 +26,7 @@ def seg_tiled_dataset(client):
         data_tiled_client=client["reconstructions"]["recon1"],
         mask_tiled_client=client["uid0001"],
         is_training=False,
+        is_full_inference=False,
     )
     yield tiled_dataset
 

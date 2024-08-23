@@ -58,12 +58,13 @@ def validate_parameters(parameters):
     return io_parameters, network, model_parameters
 
 
-def initialize_tiled_datasets(io_parameters, is_training=True):
+def initialize_tiled_datasets(io_parameters, is_training=False, is_full_inference=False):
     """
     This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
     Input:
         io_parameters: class, all io parameters in pydantic class
         is_training: bool, whether the dataset is used for training or inference
+        is_full_inference: bool, whether the process is used for full inference
     Output:
         dataset: class, TiledDataset
 
@@ -80,6 +81,7 @@ def initialize_tiled_datasets(io_parameters, is_training=True):
         data_tiled_client=data_tiled_client,
         mask_tiled_client=mask_tiled_client,
         is_training=is_training,
+        is_full_inference=is_full_inference,
         using_qlty=False,
         transform=transforms.ToTensor(),
     )
@@ -294,9 +296,9 @@ def allocate_array_space(
     last_container = last_container.create_container(key=uid)
 
     array_shape = (
-        tiled_dataset.mask_client.shape
-        if tiled_dataset.mask_client
-        else tiled_dataset.data_client.shape
+        tiled_dataset.data_client.shape
+        if tiled_dataset.is_full_inference
+        else tiled_dataset.mask_client.shape
     )
     # In case we have 2d array for the single mask case, where the ArrayClient will return a 2d array.
     if len(array_shape) == 2:

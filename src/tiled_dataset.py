@@ -9,7 +9,8 @@ class TiledDataset(torch.utils.data.Dataset):
         self,
         data_tiled_client,
         mask_tiled_client=None,
-        is_training=None,
+        is_training=False,
+        is_full_inference=False,
         using_qlty=False,
         qlty_window=50,
         qlty_step=30,
@@ -23,6 +24,7 @@ class TiledDataset(torch.utils.data.Dataset):
             mask_tiled_uri:      str,    Tiled URI of mask
             mask_tiled_api_key:  str,    Tiled API key for mask access
             is_training:         bool,   Whether this is a training instance
+            is_full_inference:   bool,   Whether to perform full inference
             qlty_window:         int,    patch size for qlty cropping
             qlty_step:           int,    shifting window for qlty
             qlty_border:         int,    border size for qlty
@@ -52,13 +54,14 @@ class TiledDataset(torch.utils.data.Dataset):
                 border=(qlty_border, qlty_border),
             )
         self.is_training = is_training
+        self.is_full_inference = is_full_inference
         self.using_qlty = using_qlty
 
     def __len__(self):
-        if self.mask_client:
-            return len(self.mask_client)
-        else:
+        if self.is_full_inference:
             return len(self.data_client)
+        else:
+            return len(self.mask_client)
 
     def __getitem__(self, idx):
         if self.is_training:
@@ -87,7 +90,7 @@ class TiledDataset(torch.utils.data.Dataset):
                 return data, mask
 
         else:
-            if self.mask_client:
+            if not self.is_full_inference:
                 data = self.data_client[self.mask_idx[idx],]
                 if self.using_qlty:
                     # Change to 4d array for qlty requirement

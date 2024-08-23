@@ -137,7 +137,7 @@ def train(args):
         # Load parameters
         parameters = yaml.safe_load(file)
     io_parameters, network_name, model_parameters = validate_parameters(parameters)
-    dataset = initialize_tiled_datasets(io_parameters, is_training=True)
+    dataset = initialize_tiled_datasets(io_parameters, is_training=True, is_full_inference=False)
     data, mask = prepare_data_and_mask(dataset)
     data = normalization(data)
     data = torch.from_numpy(data)
@@ -190,7 +190,7 @@ def train(args):
 def partial_inference(
     io_parameters, network_name, model_parameters, qlty_object, device, net
 ):
-    dataset = initialize_tiled_datasets(io_parameters, is_training=False)
+    dataset = initialize_tiled_datasets(io_parameters, is_training=False, is_full_inference=False,)
     torch.cuda.empty_cache()
     print(f"Partial Inference will be processed on: {device}")
     # Allocate Result space in Tiled
