@@ -55,18 +55,23 @@ def tiled_dataset(client):
         data_tiled_client=client["reconstructions"]["recon1"],
         mask_tiled_client=client["uid0001"],
         is_training=True,
+        is_full_inference=False,
     )
     yield tiled_dataset
 
 
-@pytest.fixture
-def parameters_dict():
-    yaml_path = "src/_tests/example_tunet.yaml"
+@pytest.fixture(params=[
+    "src/_tests/example_tunet.yaml",
+    # "src/_tests/example_msdnet.yaml",
+    # "src/_tests/example_tunet3plus.yaml",
+    # "src/_tests/example_smsnet_ensemble.yaml",
+    # pytest.param("src/_tests/example_bad_params.yaml", marks=pytest.mark.bad_params)
+])
+def parameters_dict(request):
+    yaml_path = request.param
     with open(yaml_path, "r") as file:
-        # Load parameters
         parameters_dict = yaml.safe_load(file)
     yield parameters_dict
-
 
 @pytest.fixture
 def io_parameters(parameters_dict):

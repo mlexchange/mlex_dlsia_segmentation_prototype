@@ -1,23 +1,22 @@
 import os
-
+import pytest
 import torch
 
 from utils import find_device
 
-
-def test_find_device_cuda_available(monkeypatch):
-    # Monkey patch torch.cuda.is_available to return True
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+@pytest.mark.parametrize(
+    "cuda_available, expected_device_type",
+    [
+        (True, "cuda"),
+        (False, "cpu"),
+    ]
+)
+def test_find_device(monkeypatch, cuda_available, expected_device_type):
+    # Monkey patch torch.cuda.is_available to return the specified value
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda_available)
     device = find_device()
-    assert device.type == "cuda", "Device should be cuda when CUDA is available"
-
-
-def test_find_device_cuda_not_available(monkeypatch):
-    # Monkey patch torch.cuda.is_available to return False
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-    device = find_device()
-    assert device.type == "cpu", "Device should be cpu when CUDA is not available"
-
+    assert device.type == expected_device_type, \
+        f"Device should be {expected_device_type} when CUDA is {'available' if cuda_available else 'not available'}"
 
 def test_dir_creation(model_directory):
     assert os.path.exists(model_directory)
