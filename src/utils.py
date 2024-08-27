@@ -58,7 +58,9 @@ def validate_parameters(parameters):
     return io_parameters, network, model_parameters
 
 
-def initialize_tiled_datasets(io_parameters, is_training=False, is_full_inference=False):
+def initialize_tiled_datasets(
+    io_parameters, is_training=False, is_full_inference=False
+):
     """
     This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
     Input:

@@ -60,18 +60,21 @@ def tiled_dataset(client):
     yield tiled_dataset
 
 
-@pytest.fixture(params=[
-    "src/_tests/example_tunet.yaml",
-    # "src/_tests/example_msdnet.yaml",
-    # "src/_tests/example_tunet3plus.yaml",
-    # "src/_tests/example_smsnet_ensemble.yaml",
-    # pytest.param("src/_tests/example_bad_params.yaml", marks=pytest.mark.bad_params)
-])
+@pytest.fixture(
+    params=[
+        "src/_tests/example_tunet.yaml",
+        # "src/_tests/example_msdnet.yaml",
+        # "src/_tests/example_tunet3plus.yaml",
+        # "src/_tests/example_smsnet_ensemble.yaml",
+        # pytest.param("src/_tests/example_bad_params.yaml", marks=pytest.mark.bad_params)
+    ]
+)
 def parameters_dict(request):
     yaml_path = request.param
     with open(yaml_path, "r") as file:
         parameters_dict = yaml.safe_load(file)
     yield parameters_dict
+
 
 @pytest.fixture
 def io_parameters(parameters_dict):

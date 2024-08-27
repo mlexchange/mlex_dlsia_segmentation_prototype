@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from ..tiled_dataset import TiledDataset
 
 
@@ -7,16 +8,49 @@ from ..tiled_dataset import TiledDataset
     "mask_client, is_training, is_full_inference, expected_len, expected_shape, expected_dtype, check_mask",
     [
         # Test with mask, during training
-        ({"mask_client": "uid0001", "mask_idx": [1, 3]}, True, False, 2, (6, 6), np.uint8, True),
+        (
+            {"mask_client": "uid0001", "mask_idx": [1, 3]},
+            True,
+            False,
+            2,
+            (6, 6),
+            np.uint8,
+            True,
+        ),
         # Test with mask, quick inference
-        ({"mask_client": "uid0001", "mask_idx": [1, 3]}, False, False, 2, (6, 6), np.uint8, False),
+        (
+            {"mask_client": "uid0001", "mask_idx": [1, 3]},
+            False,
+            False,
+            2,
+            (6, 6),
+            np.uint8,
+            False,
+        ),
         # Test with mask, full inference
-        ({"mask_client": "uid0001", "mask_idx": [1, 3]}, False, True, 5, (6, 6), np.uint8, False),
+        (
+            {"mask_client": "uid0001", "mask_idx": [1, 3]},
+            False,
+            True,
+            5,
+            (6, 6),
+            np.uint8,
+            False,
+        ),
         # Test without mask, full inference
         (None, False, True, 5, (6, 6), np.uint8, False),
     ],
 )
-def test_tiled_dataset(client, mask_client, is_training, is_full_inference, expected_len, expected_shape, expected_dtype, check_mask):
+def test_tiled_dataset(
+    client,
+    mask_client,
+    is_training,
+    is_full_inference,
+    expected_len,
+    expected_shape,
+    expected_dtype,
+    check_mask,
+):
     mask_tiled_client = client[mask_client["mask_client"]] if mask_client else None
 
     tiled_dataset = TiledDataset(
@@ -28,7 +62,7 @@ def test_tiled_dataset(client, mask_client, is_training, is_full_inference, expe
 
     assert tiled_dataset
     assert len(tiled_dataset) == expected_len
-    
+
     # Check data
     if is_training:
         assert len(tiled_dataset[0]) == 2  # data and mask

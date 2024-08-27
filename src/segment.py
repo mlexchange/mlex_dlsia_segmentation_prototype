@@ -25,7 +25,11 @@ def full_inference(args):
         # Load parameters
         parameters = yaml.safe_load(file)
     io_parameters, network_name, model_parameters = validate_parameters(parameters)
-    dataset = initialize_tiled_datasets(io_parameters, is_training=False, is_full_inference=True,)
+    dataset = initialize_tiled_datasets(
+        io_parameters,
+        is_training=False,
+        is_full_inference=True,
+    )
     qlty_object = NCYXQuilt(
         X=dataset.data_client.shape[-1],
         Y=dataset.data_client.shape[-2],
