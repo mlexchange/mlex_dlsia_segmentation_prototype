@@ -88,19 +88,9 @@ def test_normalization(normed_data):
 
 
 @pytest.fixture
-def data_tensor(normed_data):
+def patched_data_mask_pair(qlty_object, normed_data, mask_array):
     data_tensor = torch.from_numpy(normed_data)
-    yield data_tensor
-
-
-@pytest.fixture
-def mask_tensor(mask_array):
     mask_tensor = torch.from_numpy(mask_array)
-    yield mask_tensor
-
-
-@pytest.fixture
-def patched_data_mask_pair(qlty_object, data_tensor, mask_tensor):
     patched_data, patched_mask = qlty_crop(
         qlty_object, data_tensor, is_training=True, masks=mask_tensor
     )
@@ -171,10 +161,11 @@ def test_train_and_val_loader(
 
 
 @pytest.fixture
-def networks(network_name, tiled_dataset, model_parameters):
+def networks(network_name, patched_data_mask_pair, model_parameters):
+    patched_data = patched_data_mask_pair[0]
     networks = build_network(
         network_name=network_name,
-        data_shape=tiled_dataset.data_client.shape,  # TODO: Double check if this needs to be switched to the patch dim
+        data_shape=patched_data.shape,
         num_classes=model_parameters.num_classes,
         parameters=model_parameters,
     )
@@ -186,7 +177,6 @@ def test_build_networks(networks):
     assert type(networks) is list
     assert len(networks) == 1
     assert networks[0]
-    # TODO: Test more aspects of the built network
 
 
 @pytest.fixture
