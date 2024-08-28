@@ -33,7 +33,8 @@ def seg_tiled_dataset(client):
 
 @pytest.fixture
 def seg_client(client, seg_tiled_dataset, io_parameters, network_name):
-
+    if isinstance(io_parameters, AssertionError):
+        pytest.skip("Skipping test due to unsupported network in parameters")
     result_container = client.create_container("results")
     array_client = allocate_array_space(
         tiled_dataset=seg_tiled_dataset,
@@ -45,20 +46,20 @@ def seg_client(client, seg_tiled_dataset, io_parameters, network_name):
     yield array_client
 
 
-def test_seg_client(seg_client):
+def test_seg_client(seg_client, io_parameters, network_name):
     assert seg_client
     assert type(seg_client) is tiled.client.array.ArrayClient
     assert (
         seg_client.uri
-        == "http://local-tiled-app/api/v1/metadata/results/pytest1/seg_result"
+        == f"http://local-tiled-app/api/v1/metadata/results/{io_parameters.uid_save}/seg_result"
     )
     assert seg_client.shape == (2, 6, 6)
     metadata = {
         "data_uri": "http://local-tiled-app/api/v1/metadata/reconstructions/recon1",
         "mask_uri": "http://local-tiled-app/api/v1/metadata/uid0001/mask",
         "mask_idx": [1, 3],
-        "uid": "pytest1",
-        "model": "DLSIA TUNet",
+        "uid": io_parameters.uid_save,
+        "model": network_name,
     }
     assert seg_client.metadata == metadata
 

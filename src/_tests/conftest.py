@@ -1,4 +1,6 @@
-import os
+import shutil
+import tempfile
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -62,48 +64,95 @@ def tiled_dataset(client):
 
 @pytest.fixture(
     params=[
+        "src/_tests/example_msdnet.yaml",
         "src/_tests/example_tunet.yaml",
-        # "src/_tests/example_msdnet.yaml",
-        # "src/_tests/example_tunet3plus.yaml",
-        # "src/_tests/example_smsnet_ensemble.yaml",
-        # pytest.param("src/_tests/example_bad_params.yaml", marks=pytest.mark.bad_params)
+        "src/_tests/example_tunet3plus.yaml",
+        "src/_tests/example_smsnet_ensemble.yaml",
+        pytest.param(
+            "src/_tests/example_bad_params.yaml", marks=pytest.mark.bad_params
+        ),
     ]
 )
 def parameters_dict(request):
     yaml_path = request.param
     with open(yaml_path, "r") as file:
         parameters_dict = yaml.safe_load(file)
+    parameters_dict["config_file_name"] = (
+        yaml_path  # Adding the file name to the dictionary for testing purpose
+    )
     yield parameters_dict
 
 
 @pytest.fixture
 def io_parameters(parameters_dict):
-    io_parameters, _, _ = validate_parameters(parameters_dict)
-    yield io_parameters
+    try:
+        # Validate parameters during fixture setup
+        io_parameters, _, _ = validate_parameters(parameters_dict)
+        # Pass the valid parameters to the tests
+        yield io_parameters
+    except AssertionError as e:
+        # Handle the exception and set a flag or do something else
+        yield e
 
 
 @pytest.fixture
 def network_name(parameters_dict):
-    _, network_name, _ = validate_parameters(parameters_dict)
-    yield network_name
+    try:
+        # Validate parameters during fixture setup
+        _, network_name, _ = validate_parameters(parameters_dict)
+        # Pass the valid parameters to the tests
+        yield network_name
+    except AssertionError as e:
+        # Handle the exception and set a flag or do something else
+        yield e
 
 
 @pytest.fixture
 def model_parameters(parameters_dict):
-    _, _, model_parameters = validate_parameters(parameters_dict)
-    yield model_parameters
+    try:
+        # Validate parameters during fixture setup
+        _, _, model_parameters = validate_parameters(parameters_dict)
+        # Pass the valid parameters to the tests
+        yield model_parameters
+    except AssertionError as e:
+        # Handle the exception and set a flag or do something else
+        yield e
+
+
+@pytest.fixture(scope="session")
+def session_temp_directory():
+    # Create a temporary directory for the session
+    temp_dir = tempfile.mkdtemp()
+
+    # Yield the directory path to the tests
+    yield temp_dir
+
+    # Cleanup: Remove the directory after all tests are done
+    shutil.rmtree(temp_dir)
 
 
 @pytest.fixture
-def model_directory(io_parameters):
-    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
+def model_directory(io_parameters, session_temp_directory):
+    if isinstance(io_parameters, AssertionError):
+        pytest.skip("Skipping test due to unsupported network in parameters")
+
+    # Convert session_temp_directory to Path object
+    temp_path = Path(session_temp_directory)
+
+    # Construct the model directory path
+    model_dir = temp_path / io_parameters.models_dir / io_parameters.uid_save
+
     # Create Result Directory if not existed
     create_directory(model_dir)
-    return model_dir
+
+    yield str(model_dir)  # Convert to string for compatibility with external code
 
 
 @pytest.fixture
 def qlty_object(tiled_dataset, model_parameters):
+    if isinstance(model_parameters, AssertionError):
+        pytest.skip("Skipping test due to unsupported network in parameters")
+
     qlty_object = NCYXQuilt(
         X=tiled_dataset.data_client.shape[-1],
         Y=tiled_dataset.data_client.shape[-2],
