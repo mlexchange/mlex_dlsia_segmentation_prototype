@@ -127,10 +127,3 @@ def result(prediction, qlty_object, seg_client):
 def test_result(result):
     assert result.shape == (1, 6, 6)
 
-
-# TODO: Discuss error and fix this pytest
-# def test_seg_parent_container(client):
-#     print(client.uri)
-#     print(client)
-#     last_container = ensure_parent_containers(client.uri)
-#     assert last_container
