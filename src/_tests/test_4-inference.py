@@ -126,4 +126,3 @@ def result(prediction, qlty_object, seg_client):
 
 def test_result(result):
     assert result.shape == (1, 6, 6)
-
