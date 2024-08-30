@@ -8,7 +8,6 @@ from qlty import cleanup
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 from torch.utils.data import DataLoader, TensorDataset, random_split
-from torchvision import transforms
 
 from network import baggin_smsnet_ensemble, load_network
 from parameters import (
@@ -84,7 +83,6 @@ def initialize_tiled_datasets(
         mask_tiled_client=mask_tiled_client,
         is_training=is_training,
         is_full_inference=is_full_inference,
-        transform=transforms.ToTensor(),
     )
     return dataset
 

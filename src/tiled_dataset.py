@@ -9,7 +9,6 @@ class TiledDataset(torch.utils.data.Dataset):
         mask_tiled_client=None,
         is_training=False,
         is_full_inference=False,
-        transform=None,
     ):
         """
         Args:
@@ -19,7 +18,6 @@ class TiledDataset(torch.utils.data.Dataset):
             mask_tiled_api_key:  str,    Tiled API key for mask access
             is_training:         bool,   Whether this is a training instance
             is_full_inference:   bool,   Whether to perform full inference
-            transform:           callable, if not given return PIL image
 
         Return:
             ml_data:        tuple, (data_tensor, mask_tensor)
@@ -34,7 +32,6 @@ class TiledDataset(torch.utils.data.Dataset):
             self.mask_client = None
             self.mask_idx = None
 
-        self.transform = transform
         self.is_training = is_training
         self.is_full_inference = is_full_inference
 
