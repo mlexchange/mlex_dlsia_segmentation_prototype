@@ -1,6 +1,4 @@
 import torch
-from qlty import cleanup
-from qlty.qlty2D import NCYXQuilt
 
 
 class TiledDataset(torch.utils.data.Dataset):
@@ -11,10 +9,6 @@ class TiledDataset(torch.utils.data.Dataset):
         mask_tiled_client=None,
         is_training=False,
         is_full_inference=False,
-        using_qlty=False,
-        qlty_window=50,
-        qlty_step=30,
-        qlty_border=3,
         transform=None,
     ):
         """
@@ -25,9 +19,6 @@ class TiledDataset(torch.utils.data.Dataset):
             mask_tiled_api_key:  str,    Tiled API key for mask access
             is_training:         bool,   Whether this is a training instance
             is_full_inference:   bool,   Whether to perform full inference
-            qlty_window:         int,    patch size for qlty cropping
-            qlty_step:           int,    shifting window for qlty
-            qlty_border:         int,    border size for qlty
             transform:           callable, if not given return PIL image
 
         Return:
@@ -44,18 +35,8 @@ class TiledDataset(torch.utils.data.Dataset):
             self.mask_idx = None
 
         self.transform = transform
-        if using_qlty:
-            # this object handles unstitching and stitching
-            self.qlty_object = NCYXQuilt(
-                X=self.data_client.shape[-1],
-                Y=self.data_client.shape[-2],
-                window=(qlty_window, qlty_window),
-                step=(qlty_step, qlty_step),
-                border=(qlty_border, qlty_border),
-            )
         self.is_training = is_training
         self.is_full_inference = is_full_inference
-        self.using_qlty = using_qlty
 
     def __len__(self):
         if self.is_full_inference:
@@ -67,45 +48,12 @@ class TiledDataset(torch.utils.data.Dataset):
         if self.is_training:
             data = self.data_client[self.mask_idx[idx],]
             mask = self.mask_client[idx,]
-
-            if self.using_qlty:
-                # Change to 4d array for qlty requirement
-                data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
-                # Change to 3d array for qlty requirement of labels
-                mask = torch.from_numpy(mask).unsqueeze(0)
-                data_patches, mask_patches = self.qlty_object.unstitch_data_pair(
-                    data, mask
-                )
-                border_tensor = self.qlty_object.border_tensor()
-                clean_data_patches, clean_mask_patches, _ = (
-                    cleanup.weed_sparse_classification_training_pairs_2D(
-                        data_patches,
-                        mask_patches,
-                        missing_label=-1,
-                        border_tensor=border_tensor,
-                    )
-                )
-                return clean_data_patches, clean_mask_patches
-            else:
-                return data, mask
-
+            return data, mask
         else:
             if not self.is_full_inference:
                 data = self.data_client[self.mask_idx[idx],]
-                if self.using_qlty:
-                    # Change to 4d array for qlty requirement
-                    data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
-                    data_patches = self.qlty_object.unstitch(data)
-                    return data_patches
-                else:
-                    return data
+                return data
 
             else:
                 data = self.data_client[idx,]
-                if self.using_qlty:
-                    # Change to 4d array for qlty requirement
-                    data = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
-                    data_patches = self.qlty_object.unstitch(data)
-                    return data_patches
-                else:
-                    return data
+                return data

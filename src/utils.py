@@ -84,7 +84,6 @@ def initialize_tiled_datasets(
         mask_tiled_client=mask_tiled_client,
         is_training=is_training,
         is_full_inference=is_full_inference,
-        using_qlty=False,
         transform=transforms.ToTensor(),
     )
     return dataset
