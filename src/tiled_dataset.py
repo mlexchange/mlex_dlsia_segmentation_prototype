@@ -1,4 +1,5 @@
 import torch
+from tiled.client import from_uri
 
 
 class TiledDataset(torch.utils.data.Dataset):
@@ -54,3 +55,33 @@ class TiledDataset(torch.utils.data.Dataset):
             else:
                 data = self.data_client[idx,]
                 return data
+
+
+def initialize_tiled_datasets(
+    io_parameters, is_training=False, is_full_inference=False
+):
+    """
+    This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
+    Input:
+        io_parameters: class, all io parameters in pydantic class
+        is_training: bool, whether the dataset is used for training or inference
+        is_full_inference: bool, whether the process is used for full inference
+    Output:
+        dataset: class, TiledDataset
+
+    """
+    data_tiled_client = from_uri(
+        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
+    )
+    mask_tiled_client = None
+    if io_parameters.mask_tiled_uri:
+        mask_tiled_client = from_uri(
+            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+        )
+    dataset = TiledDataset(
+        data_tiled_client=data_tiled_client,
+        mask_tiled_client=mask_tiled_client,
+        is_training=is_training,
+        is_full_inference=is_full_inference,
+    )
+    return dataset

@@ -10,13 +10,13 @@ from dlsia.core.train_scripts import Trainer
 from qlty.qlty2D import NCYXQuilt
 
 from network import build_network
+from tiled_dataset import initialize_tiled_datasets
 from utils import (
     allocate_array_space,
     construct_dataloaders,
     create_directory,
     ensure_parent_containers,
     find_device,
-    initialize_tiled_datasets,
     normalization,
     qlty_crop,
     segment_single_frame,

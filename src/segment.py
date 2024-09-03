@@ -6,12 +6,12 @@ import torch
 import yaml
 from qlty.qlty2D import NCYXQuilt
 
+from tiled_dataset import initialize_tiled_datasets
 from utils import (
     allocate_array_space,
     construct_dataloaders,
     ensure_parent_containers,
     find_device,
-    initialize_tiled_datasets,
     load_dlsia_network,
     normalization,
     qlty_crop,
