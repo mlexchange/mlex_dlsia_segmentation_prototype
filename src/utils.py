@@ -17,6 +17,7 @@ from parameters import (
     TUNet3PlusParameters,
     TUNetParameters,
 )
+from tiled_dataset import TiledMaskedDataset
 
 
 def validate_parameters(parameters):
@@ -263,11 +264,8 @@ def allocate_array_space(
 
     last_container = last_container.create_container(key=uid)
 
-    array_shape = (
-        tiled_dataset.data_client.shape
-        if tiled_dataset.is_full_inference
-        else tiled_dataset.mask_client.shape
-    )
+    array_shape = tiled_dataset.shape
+    # TODO: Check if this case is still valid
     # In case we have 2d array for the single mask case, where the ArrayClient will return a 2d array.
     if len(array_shape) == 2:
         array_shape = (1,) + array_shape
@@ -277,13 +275,13 @@ def allocate_array_space(
     structure.chunks = ((1,) * array_shape[0], (array_shape[1],), (array_shape[2],))
 
     mask_uri = None
-    if tiled_dataset.mask_client is not None:
+    if isinstance(tiled_dataset, TiledMaskedDataset):
         mask_uri = tiled_dataset.mask_client.uri
 
     metadata = {
         "data_uri": tiled_dataset.data_client.uri,
         "mask_uri": mask_uri,
-        "mask_idx": tiled_dataset.mask_idx,
+        "mask_idx": tiled_dataset.selected_indices,
         "uid": uid,
         "model": model_name,
     }

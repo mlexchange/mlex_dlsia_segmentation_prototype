@@ -28,11 +28,10 @@ def full_inference(args):
     dataset = initialize_tiled_datasets(
         io_parameters,
         is_training=False,
-        is_full_inference=True,
     )
     qlty_object = NCYXQuilt(
-        X=dataset.data_client.shape[-1],
-        Y=dataset.data_client.shape[-2],
+        X=dataset.shape[-1],
+        Y=dataset.shape[-2],
         window=(model_parameters.qlty_window, model_parameters.qlty_window),
         step=(model_parameters.qlty_step, model_parameters.qlty_step),
         border=(model_parameters.qlty_border, model_parameters.qlty_border),

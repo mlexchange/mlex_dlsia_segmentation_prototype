@@ -24,18 +24,20 @@ from utils import (
 )
 
 
-def prepare_data_and_mask(tiled_dataset):
+def prepare_data_and_mask(tiled_masked_dataset):
     """
     This function extracts the data and mask array stack from the tiled dataset class
     Input:
-        tiled_dataset: class
+        tiled_masked_dataset: class
     Output:
         data: np.ndarray, all labeled raw image stack
         mask: np.ndarray, all masks stack
     """
     # Load all labeled data and masks into memory
-    data = tiled_dataset.data_client[tiled_dataset.mask_idx]
-    mask = tiled_dataset.mask_client[:]
+    # TODO: Check if this has limitations in regards to number of possible slices
+    # Directly accessing client data is not the intended use of the dataset class
+    data = tiled_masked_dataset.data_client[tiled_masked_dataset.selected_indices, :]
+    mask = tiled_masked_dataset.mask_client[:]
     return data, mask
 
 
@@ -137,16 +139,14 @@ def train(args):
         # Load parameters
         parameters = yaml.safe_load(file)
     io_parameters, network_name, model_parameters = validate_parameters(parameters)
-    dataset = initialize_tiled_datasets(
-        io_parameters, is_training=True, is_full_inference=False
-    )
+    dataset = initialize_tiled_datasets(io_parameters, is_training=True)
     data, mask = prepare_data_and_mask(dataset)
     data = normalization(data)
     data = torch.from_numpy(data)
     mask = torch.from_numpy(mask)
     qlty_object = NCYXQuilt(
-        X=dataset.data_client.shape[-1],
-        Y=dataset.data_client.shape[-2],
+        X=dataset.shape[-1],
+        Y=dataset.shape[-2],
         window=(model_parameters.qlty_window, model_parameters.qlty_window),
         step=(model_parameters.qlty_step, model_parameters.qlty_step),
         border=(model_parameters.qlty_border, model_parameters.qlty_border),
@@ -192,11 +192,7 @@ def train(args):
 def partial_inference(
     io_parameters, network_name, model_parameters, qlty_object, device, net
 ):
-    dataset = initialize_tiled_datasets(
-        io_parameters,
-        is_training=False,
-        is_full_inference=False,
-    )
+    dataset = initialize_tiled_datasets(io_parameters, is_training=True)
     torch.cuda.empty_cache()
     print(f"Partial Inference will be processed on: {device}")
     # Allocate Result space in Tiled

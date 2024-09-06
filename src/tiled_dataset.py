@@ -3,85 +3,103 @@ from tiled.client import from_uri
 
 
 class TiledDataset(torch.utils.data.Dataset):
+    """
+    PyTorch dataset class for data (or index-based subset of data) retrieved through Tiled.
 
-    def __init__(
-        self,
-        data_tiled_client,
-        mask_tiled_client=None,
-        is_training=False,
-        is_full_inference=False,
-    ):
-        """
-        Args:
-            data_tiled_uri:      str,    Tiled URI of the input data
-            data_tiled_api_key:  str,    Tiled API key for input data access
-            mask_tiled_uri:      str,    Tiled URI of mask
-            mask_tiled_api_key:  str,    Tiled API key for mask access
-            is_training:         bool,   Whether this is a training instance
-            is_full_inference:   bool,   Whether to perform full inference
+    Parameters:
+        data_tiled_client (tiled.client): The client object used to access the data through Tiled.
+        selected_indices (List[int]): List of indices to iterate over a subset of the data.
+    Attributes:
+        shape (Tuple[int]): The shape of the data set.
+    Methods:
+        __len__(): Returns the length of the dataset.
+        __getitem__(idx): Returns the data at the given index as a numpy array.
+    """
 
-        Return:
-            ml_data:        tuple, (data_tensor, mask_tensor)
-        """
-
+    def __init__(self, data_tiled_client, selected_indices=None):
         self.data_client = data_tiled_client
-        self.mask_client = None
-        if mask_tiled_client:
-            self.mask_client = mask_tiled_client["mask"]
-            self.mask_idx = [int(idx) for idx in mask_tiled_client.metadata["mask_idx"]]
-        else:
-            self.mask_client = None
-            self.mask_idx = None
-
-        self.is_training = is_training
-        self.is_full_inference = is_full_inference
+        self.selected_indices = selected_indices
 
     def __len__(self):
-        if self.is_full_inference:
-            return len(self.data_client)
-        else:
-            return len(self.mask_client)
+        if not (self.selected_indices is None):
+            return len(self.selected_indices)
+        return len(self.data_client)
 
     def __getitem__(self, idx):
-        if self.is_training:
-            data = self.data_client[self.mask_idx[idx],]
-            mask = self.mask_client[idx,]
-            return data, mask
-        else:
-            if not self.is_full_inference:
-                data = self.data_client[self.mask_idx[idx],]
-                return data
+        if not (self.selected_indices is None):
+            idx = self.selected_indices[idx]
+        data = self.data_client[idx,]
+        return data
 
-            else:
-                data = self.data_client[idx,]
-                return data
+    @property
+    def shape(self):
+        if not (self.selected_indices is None):
+            # Update shape of the data set based on the selected indices
+            # List / tuple conversion is needed for mutability
+            data_client_shape = list(self.data_client.shape)
+            data_client_shape[0] = len(self.selected_indices)
+            return tuple(data_client_shape)
+        return self.data_client.shape
 
 
-def initialize_tiled_datasets(
-    io_parameters, is_training=False, is_full_inference=False
-):
+class TiledMaskedDataset(TiledDataset):
     """
-    This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
+        PyTorch dataset class for data and and subset of data retrieved through Tiled.
+    Args:
+        data_tiled_client (tiled.client): The tiled client for accessing the data.
+        mask_tiled_client (tiled.client): The tiled client for accessing segmentation masks.
+    Methods:
+        __len__(): Returns the length of the dataset.
+        __getitem__(idx): Returns the data and mask at the given index.
+    """
+
+    def __init__(self, data_tiled_client, mask_tiled_client):
+        if "mask_idx" not in mask_tiled_client.metadata:
+            raise KeyError(
+                "The mask client does not have the required 'mask_idx' metadata."
+            )
+
+        selected_indices = mask_tiled_client.metadata["mask_idx"]
+        super().__init__(data_tiled_client, selected_indices)
+
+        if "mask" not in mask_tiled_client.keys():
+            raise KeyError("The mask client does not have the required 'mask' key.")
+        self.mask_client = mask_tiled_client["mask"]
+
+    def __len__(self):
+        return len(self.mask_client)
+
+    def __getitem__(self, idx):
+        data = self.data_client[self.selected_indices[idx],]
+        mask = self.mask_client[idx,]
+        return data, mask
+
+
+def initialize_tiled_datasets(io_parameters, is_training=False):
+    """
+    This function takes Tiled configurations from the io_parameter class, builds the client and constructs TiledDataset.
     Input:
-        io_parameters: class, all io parameters in pydantic class
+        io_parameters: class, all io parameters in Pydantic class
         is_training: bool, whether the dataset is used for training or inference
-        is_full_inference: bool, whether the process is used for full inference
     Output:
-        dataset: class, TiledDataset
+        dataset: TiledDataset or TiledMaskedDataset
 
     """
-    data_tiled_client = from_uri(
-        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
-    )
-    mask_tiled_client = None
-    if io_parameters.mask_tiled_uri:
-        mask_tiled_client = from_uri(
-            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+    try:
+        data_tiled_client = from_uri(
+            io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
         )
-    dataset = TiledDataset(
-        data_tiled_client=data_tiled_client,
-        mask_tiled_client=mask_tiled_client,
-        is_training=is_training,
-        is_full_inference=is_full_inference,
-    )
+    except Exception as e:
+        raise ValueError(f"Error initializing data tiled client: {e}")
+
+    if is_training and io_parameters.mask_tiled_uri:
+        try:
+            mask_tiled_client = from_uri(
+                io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
+            )
+            dataset = TiledMaskedDataset(data_tiled_client, mask_tiled_client)
+        except Exception as e:
+            raise ValueError(f"Error initializing mask tiled client: {e}")
+    else:
+        dataset = TiledDataset(data_tiled_client=data_tiled_client)
     return dataset

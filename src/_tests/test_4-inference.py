@@ -21,12 +21,10 @@ def loaded_network(network_name, model_directory):
 
 
 @pytest.fixture
+# TODO: Duplication of previous fixture?
 def seg_tiled_dataset(client):
     tiled_dataset = TiledDataset(
         data_tiled_client=client["reconstructions"]["recon1"],
-        mask_tiled_client=client["uid0001"],
-        is_training=False,
-        is_full_inference=False,
     )
     yield tiled_dataset
 
@@ -53,11 +51,11 @@ def test_seg_client(seg_client, io_parameters, network_name):
         seg_client.uri
         == f"http://local-tiled-app/api/v1/metadata/results/{io_parameters.uid_save}/seg_result"
     )
-    assert seg_client.shape == (2, 6, 6)
+    assert seg_client.shape == (5, 6, 6)
     metadata = {
         "data_uri": "http://local-tiled-app/api/v1/metadata/reconstructions/recon1",
-        "mask_uri": "http://local-tiled-app/api/v1/metadata/uid0001/mask",
-        "mask_idx": [1, 3],
+        "mask_uri": None,
+        "mask_idx": None,
         "uid": io_parameters.uid_save,
         "model": network_name,
     }

@@ -10,7 +10,7 @@ from tiled.catalog import from_uri
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
 
-from ..tiled_dataset import TiledDataset
+from ..tiled_dataset import TiledDataset, TiledMaskedDataset
 from ..utils import create_directory, find_device, validate_parameters
 
 
@@ -44,9 +44,8 @@ def client(context):
     recons_container.write_array(
         np.random.randint(0, 256, size=(5, 6, 6), dtype=np.uint8), key="recon1"
     )
-    masks_container = client.create_container(
-        "uid0001", metadata={"mask_idx": ["1", "3"]}
-    )  # 2 slices
+    masks_container = client.create_container("uid0001", metadata={"mask_idx": [1, 3]})
+    # 2 slices
     masks_container.write_array(np.ones((2, 6, 6), dtype=np.int8), key="mask")
     yield client
 
@@ -55,11 +54,17 @@ def client(context):
 def tiled_dataset(client):
     tiled_dataset = TiledDataset(
         data_tiled_client=client["reconstructions"]["recon1"],
-        mask_tiled_client=client["uid0001"],
-        is_training=True,
-        is_full_inference=False,
     )
     yield tiled_dataset
+
+
+@pytest.fixture
+def tiled_masked_dataset(client):
+    tiled_masked_dataset = TiledMaskedDataset(
+        data_tiled_client=client["reconstructions"]["recon1"],
+        mask_tiled_client=client["uid0001"],
+    )
+    yield tiled_masked_dataset
 
 
 @pytest.fixture(
@@ -154,8 +159,8 @@ def qlty_object(tiled_dataset, model_parameters):
         pytest.skip("Skipping test due to unsupported network in parameters")
 
     qlty_object = NCYXQuilt(
-        X=tiled_dataset.data_client.shape[-1],
-        Y=tiled_dataset.data_client.shape[-2],
+        X=tiled_dataset.shape[-1],
+        Y=tiled_dataset.shape[-2],
         window=(model_parameters.qlty_window, model_parameters.qlty_window),
         step=(model_parameters.qlty_step, model_parameters.qlty_step),
         border=(model_parameters.qlty_border, model_parameters.qlty_border),
