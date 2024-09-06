@@ -40,11 +40,13 @@ def test_tiled_dataset_selected_indices(client, selected_indices, expected_len):
 
 
 def test_tiled_masked_dataset(client):
+    mask_indices = client["uid0001"].metadata["mask_idx"]
     tiled_masked_dataset = TiledMaskedDataset(
         data_tiled_client=client["reconstructions"]["recon1"],
-        mask_tiled_client=client["uid0001"],
+        mask_tiled_client=client["uid0001"]["mask"],
+        selected_indices=mask_indices,
     )
-    mask_indices = client["uid0001"].metadata["mask_idx"]
+
     assert tiled_masked_dataset
     assert len(tiled_masked_dataset) == 2
     assert tiled_masked_dataset.shape == (2, 6, 6)

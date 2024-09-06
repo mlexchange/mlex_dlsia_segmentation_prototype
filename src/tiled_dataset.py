@@ -27,6 +27,7 @@ class TiledDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         if not (self.selected_indices is None):
+            # Index mapping to get the data at the selected index
             idx = self.selected_indices[idx]
         data = self.data_client[idx,]
         return data
@@ -48,23 +49,15 @@ class TiledMaskedDataset(TiledDataset):
     Args:
         data_tiled_client (tiled.client): The tiled client for accessing the data.
         mask_tiled_client (tiled.client): The tiled client for accessing segmentation masks.
+        selected_indices (List[int]): List of indices that map consecutive mask indices to data indices.
     Methods:
         __len__(): Returns the length of the dataset.
         __getitem__(idx): Returns the data and mask at the given index.
     """
 
-    def __init__(self, data_tiled_client, mask_tiled_client):
-        if "mask_idx" not in mask_tiled_client.metadata:
-            raise KeyError(
-                "The mask client does not have the required 'mask_idx' metadata."
-            )
-
-        selected_indices = mask_tiled_client.metadata["mask_idx"]
+    def __init__(self, data_tiled_client, mask_tiled_client, selected_indices):
         super().__init__(data_tiled_client, selected_indices)
-
-        if "mask" not in mask_tiled_client.keys():
-            raise KeyError("The mask client does not have the required 'mask' key.")
-        self.mask_client = mask_tiled_client["mask"]
+        self.mask_client = mask_tiled_client
 
     def __len__(self):
         return len(self.mask_client)
@@ -79,7 +72,7 @@ def initialize_tiled_datasets(io_parameters, is_training=False):
     """
     This function takes Tiled configurations from the io_parameter class, builds the client and constructs TiledDataset.
     Input:
-        io_parameters: class, all io parameters in Pydantic class
+        io_parameters: IOParameters, all io parameters
         is_training: bool, whether the dataset is used for training or inference
     Output:
         dataset: TiledDataset or TiledMaskedDataset
@@ -97,15 +90,23 @@ def initialize_tiled_datasets(io_parameters, is_training=False):
             mask_tiled_client = from_uri(
                 io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
             )
-            masked_dataset = TiledMaskedDataset(data_tiled_client, mask_tiled_client)
+            if "mask_idx" not in mask_tiled_client.metadata:
+                raise KeyError(
+                    "The mask client does not have the required 'mask_idx' metadata."
+                )
+            selected_indices = mask_tiled_client.metadata["mask_idx"]
+
+            if "mask" not in mask_tiled_client.keys():
+                raise KeyError("The mask client does not have the required 'mask' key.")
+            mask_tiled_client = mask_tiled_client["mask"]
+            if is_training:
+                dataset = TiledMaskedDataset(
+                    data_tiled_client, mask_tiled_client, selected_indices
+                )
+            else:
+                dataset = TiledDataset(data_tiled_client, selected_indices)
         except Exception as e:
             raise ValueError(f"Error initializing mask tiled client: {e}")
-        if is_training:
-            dataset = masked_dataset
-        else:
-            dataset = TiledDataset(
-                masked_dataset.data_client, masked_dataset.selected_indices
-            )
 
     else:
         dataset = TiledDataset(data_tiled_client=data_tiled_client)

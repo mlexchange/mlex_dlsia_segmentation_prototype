@@ -60,9 +60,11 @@ def tiled_dataset(client):
 
 @pytest.fixture
 def tiled_masked_dataset(client):
+    mask_indices = client["uid0001"].metadata["mask_idx"]
     tiled_masked_dataset = TiledMaskedDataset(
         data_tiled_client=client["reconstructions"]["recon1"],
-        mask_tiled_client=client["uid0001"],
+        mask_tiled_client=client["uid0001"]["mask"],
+        selected_indices=mask_indices,
     )
     yield tiled_masked_dataset
 
