@@ -83,7 +83,7 @@ def initialize_tiled_datasets(io_parameters, is_training=False):
             io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
         )
     except Exception as e:
-        raise ValueError(f"Error initializing data tiled client: {e}")
+        raise Exception(f"Error initializing data tiled client: {e}")
 
     if io_parameters.mask_tiled_uri:
         try:
@@ -105,8 +105,10 @@ def initialize_tiled_datasets(io_parameters, is_training=False):
                 )
             else:
                 dataset = TiledDataset(data_tiled_client, selected_indices)
+        except KeyError as e:
+            raise KeyError(f"Missing information in mask tiled client: {e}")
         except Exception as e:
-            raise ValueError(f"Error initializing mask tiled client: {e}")
+            raise Exception(f"Error initializing mask tiled client: {e}")
 
     else:
         dataset = TiledDataset(data_tiled_client=data_tiled_client)
