@@ -192,7 +192,7 @@ def train(args):
 def partial_inference(
     io_parameters, network_name, model_parameters, qlty_object, device, net
 ):
-    dataset = initialize_tiled_datasets(io_parameters, is_training=True)
+    dataset = initialize_tiled_datasets(io_parameters, is_training=False)
     torch.cuda.empty_cache()
     print(f"Partial Inference will be processed on: {device}")
     # Allocate Result space in Tiled
