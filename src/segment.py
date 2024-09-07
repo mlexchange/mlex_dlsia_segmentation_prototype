@@ -6,12 +6,12 @@ import torch
 import yaml
 from qlty.qlty2D import NCYXQuilt
 
+from tiled_dataset import initialize_tiled_datasets
 from utils import (
     allocate_array_space,
     construct_dataloaders,
     ensure_parent_containers,
     find_device,
-    initialize_tiled_datasets,
     load_dlsia_network,
     normalization,
     qlty_crop,
@@ -28,11 +28,10 @@ def full_inference(args):
     dataset = initialize_tiled_datasets(
         io_parameters,
         is_training=False,
-        is_full_inference=True,
     )
     qlty_object = NCYXQuilt(
-        X=dataset.data_client.shape[-1],
-        Y=dataset.data_client.shape[-2],
+        X=dataset.shape[-1],
+        Y=dataset.shape[-2],
         window=(model_parameters.qlty_window, model_parameters.qlty_window),
         step=(model_parameters.qlty_step, model_parameters.qlty_step),
         border=(model_parameters.qlty_border, model_parameters.qlty_border),

@@ -1,78 +1,66 @@
 import numpy as np
 import pytest
 
-from ..tiled_dataset import TiledDataset
+from ..tiled_dataset import TiledDataset, TiledMaskedDataset
+
+
+def test_tiled_dataset(client):
+    tiled_dataset = TiledDataset(data_tiled_client=client["reconstructions"]["recon1"])
+    assert tiled_dataset
+    assert len(tiled_dataset) == 5
+    assert tiled_dataset.shape == (5, 6, 6)
+    # Check data
+    for idx in range(5):
+        assert tiled_dataset[idx].shape == (6, 6)
+        assert tiled_dataset[idx].dtype == np.uint8
+        assert np.array_equal(
+            tiled_dataset[idx], client["reconstructions"]["recon1"][idx,]
+        )
 
 
 @pytest.mark.parametrize(
-    "mask_client, is_training, is_full_inference, expected_len, expected_shape, expected_dtype, check_mask",
-    [
-        # Test with mask, during training
-        (
-            {"mask_client": "uid0001", "mask_idx": [1, 3]},
-            True,
-            False,
-            2,
-            (6, 6),
-            np.uint8,
-            True,
-        ),
-        # Test with mask, quick inference
-        (
-            {"mask_client": "uid0001", "mask_idx": [1, 3]},
-            False,
-            False,
-            2,
-            (6, 6),
-            np.uint8,
-            False,
-        ),
-        # Test with mask, full inference
-        (
-            {"mask_client": "uid0001", "mask_idx": [1, 3]},
-            False,
-            True,
-            5,
-            (6, 6),
-            np.uint8,
-            False,
-        ),
-        # Test without mask, full inference
-        (None, False, True, 5, (6, 6), np.uint8, False),
-    ],
+    "selected_indices, expected_len", [(None, 5), ([0, 2, 4], 3), ([0, 1, 2, 3, 4], 5)]
 )
-def test_tiled_dataset(
-    client,
-    mask_client,
-    is_training,
-    is_full_inference,
-    expected_len,
-    expected_shape,
-    expected_dtype,
-    check_mask,
-):
-    mask_tiled_client = client[mask_client["mask_client"]] if mask_client else None
-
+def test_tiled_dataset_selected_indices(client, selected_indices, expected_len):
     tiled_dataset = TiledDataset(
         data_tiled_client=client["reconstructions"]["recon1"],
-        mask_tiled_client=mask_tiled_client,
-        is_training=is_training,
-        is_full_inference=is_full_inference,
+        selected_indices=selected_indices,
     )
-
     assert tiled_dataset
     assert len(tiled_dataset) == expected_len
+    assert tiled_dataset.shape == (expected_len, 6, 6)
+    # Check data for each index
+    for idx in range(expected_len):
+        assert tiled_dataset[idx].shape == (6, 6)
+        assert tiled_dataset[idx].dtype == np.uint8
+        mapped_idx = selected_indices[idx] if selected_indices else idx
+        assert np.array_equal(
+            tiled_dataset[idx], client["reconstructions"]["recon1"][mapped_idx,]
+        )
 
-    # Check data
-    if is_training:
-        assert len(tiled_dataset[0]) == 2  # data and mask
-        assert tiled_dataset[0][0].shape == expected_shape
-        assert tiled_dataset[0][0].dtype == expected_dtype
-        # Check mask
-        assert tiled_dataset[0][1].shape == expected_shape
-        assert tiled_dataset[0][1].dtype == np.int8
-        if check_mask:
-            assert np.all(tiled_dataset[0][1])  # should be all 1s
-    else:
-        assert tiled_dataset[0].shape == expected_shape
-        assert tiled_dataset[0].dtype == expected_dtype
+
+def test_tiled_masked_dataset(client):
+    mask_indices = client["uid0001"].metadata["mask_idx"]
+    tiled_masked_dataset = TiledMaskedDataset(
+        data_tiled_client=client["reconstructions"]["recon1"],
+        mask_tiled_client=client["uid0001"]["mask"],
+        selected_indices=mask_indices,
+    )
+
+    assert tiled_masked_dataset
+    assert len(tiled_masked_dataset) == 2
+    assert tiled_masked_dataset.shape == (2, 6, 6)
+    # Check data and mask
+    for idx in range(2):
+        mapped_idx = mask_indices[idx]
+        assert tiled_masked_dataset[idx][0].shape == (6, 6)
+        assert tiled_masked_dataset[idx][0].dtype == np.uint8
+        assert np.array_equal(
+            tiled_masked_dataset[idx][0],
+            client["reconstructions"]["recon1"][mapped_idx,],
+        )
+        assert tiled_masked_dataset[idx][1].shape == (6, 6)
+        assert tiled_masked_dataset[idx][1].dtype == np.int8
+        assert np.array_equal(
+            tiled_masked_dataset[idx][1], client["uid0001"]["mask"][idx,]
+        )

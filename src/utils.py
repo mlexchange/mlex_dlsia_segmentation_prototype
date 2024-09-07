@@ -8,7 +8,6 @@ from qlty import cleanup
 from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 from torch.utils.data import DataLoader, TensorDataset, random_split
-from torchvision import transforms
 
 from network import baggin_smsnet_ensemble, load_network
 from parameters import (
@@ -18,7 +17,7 @@ from parameters import (
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from tiled_dataset import TiledDataset
+from tiled_dataset import TiledMaskedDataset
 
 
 def validate_parameters(parameters):
@@ -56,38 +55,6 @@ def validate_parameters(parameters):
 
     print("Parameters loaded successfully.")
     return io_parameters, network, model_parameters
-
-
-def initialize_tiled_datasets(
-    io_parameters, is_training=False, is_full_inference=False
-):
-    """
-    This function takes tiled uris from the io_parameter class, build the client and construct TiledDataset.
-    Input:
-        io_parameters: class, all io parameters in pydantic class
-        is_training: bool, whether the dataset is used for training or inference
-        is_full_inference: bool, whether the process is used for full inference
-    Output:
-        dataset: class, TiledDataset
-
-    """
-    data_tiled_client = from_uri(
-        io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
-    )
-    mask_tiled_client = None
-    if io_parameters.mask_tiled_uri:
-        mask_tiled_client = from_uri(
-            io_parameters.mask_tiled_uri, api_key=io_parameters.mask_tiled_api_key
-        )
-    dataset = TiledDataset(
-        data_tiled_client=data_tiled_client,
-        mask_tiled_client=mask_tiled_client,
-        is_training=is_training,
-        is_full_inference=is_full_inference,
-        using_qlty=False,
-        transform=transforms.ToTensor(),
-    )
-    return dataset
 
 
 def normalization(image):
@@ -297,11 +264,8 @@ def allocate_array_space(
 
     last_container = last_container.create_container(key=uid)
 
-    array_shape = (
-        tiled_dataset.data_client.shape
-        if tiled_dataset.is_full_inference
-        else tiled_dataset.mask_client.shape
-    )
+    array_shape = tiled_dataset.shape
+    # TODO: Check if this case is still valid
     # In case we have 2d array for the single mask case, where the ArrayClient will return a 2d array.
     if len(array_shape) == 2:
         array_shape = (1,) + array_shape
@@ -311,13 +275,13 @@ def allocate_array_space(
     structure.chunks = ((1,) * array_shape[0], (array_shape[1],), (array_shape[2],))
 
     mask_uri = None
-    if tiled_dataset.mask_client is not None:
+    if isinstance(tiled_dataset, TiledMaskedDataset):
         mask_uri = tiled_dataset.mask_client.uri
 
     metadata = {
         "data_uri": tiled_dataset.data_client.uri,
         "mask_uri": mask_uri,
-        "mask_idx": tiled_dataset.mask_idx,
+        "mask_idx": tiled_dataset.selected_indices,
         "uid": uid,
         "model": model_name,
     }

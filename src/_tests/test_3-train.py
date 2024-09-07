@@ -153,14 +153,14 @@ def test_model_parameter_validation(model_parameters, parameters_dict):
 
 
 @pytest.fixture
-def raw_data(tiled_dataset):
-    data, _ = prepare_data_and_mask(tiled_dataset)
+def raw_data(tiled_masked_dataset):
+    data, _ = prepare_data_and_mask(tiled_masked_dataset)
     yield data
 
 
 @pytest.fixture
-def mask_array(tiled_dataset):
-    _, mask = prepare_data_and_mask(tiled_dataset)
+def mask_array(tiled_masked_dataset):
+    _, mask = prepare_data_and_mask(tiled_masked_dataset)
     yield mask
 
 
