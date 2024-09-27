@@ -16,7 +16,7 @@ def build_msdnet(
     activation,
     normalization,
     convolution,
-    final_layer=nn.Softmax(dim=1),
+    final_layer=None,
 ):
 
     if not msdnet_parameters.custom_dilation:
