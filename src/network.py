@@ -16,7 +16,6 @@ def build_msdnet(
     activation,
     normalization,
     convolution,
-    final_layer=None,
 ):
 
     if not msdnet_parameters.custom_dilation:
@@ -29,7 +28,6 @@ def build_msdnet(
             max_dilation=msdnet_parameters.max_dilation,
             activation=activation,
             normalization=normalization,
-            final_layer=final_layer,
             convolution=convolution,
         )
     else:
@@ -46,7 +44,6 @@ def build_msdnet(
             custom_msdnet=dilation_array,
             activation=activation,
             normalization=normalization,
-            final_layer=final_layer,
             convolution=convolution,
         )
     return [network]
