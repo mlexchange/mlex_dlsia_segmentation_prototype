@@ -60,10 +60,10 @@ def allocate_array_space(
 
     print(f"@@@@@@@@@@    last_container   {last_container.uri}")
     assert (
-        job_name not in last_container.keys()
-    ), f"uid_save: {job_name} already existed in Tiled Server"
+        uid not in last_container.keys()
+    ), f"uid_save: {uid} already existed in Tiled Server"
 
-    last_container = last_container.create_container(key=job_name)
+    last_container = last_container.create_container(key=uid)
 
     array_shape = (
         tiled_dataset.mask_client.shape
