@@ -51,6 +51,7 @@ def allocate_array_space(
     seg_tiled_uri,
     seg_tiled_api_key,
     uid,
+    job_name,
     model,
     array_name,
 ):
@@ -59,10 +60,10 @@ def allocate_array_space(
 
     print(f"@@@@@@@@@@    last_container   {last_container.uri}")
     assert (
-        uid not in last_container.keys()
-    ), f"uid_save: {uid} already existed in Tiled Server"
+        job_name not in last_container.keys()
+    ), f"uid_save: {job_name} already existed in Tiled Server"
 
-    last_container = last_container.create_container(key=uid)
+    last_container = last_container.create_container(key=job_name)
 
     array_shape = (
         tiled_dataset.mask_client.shape
@@ -86,6 +87,7 @@ def allocate_array_space(
         "mask_uri": mask_uri,
         "mask_idx": tiled_dataset.mask_idx,
         "uid": uid,
+        "job_name": job_name,
         "model": model,
     }
 
