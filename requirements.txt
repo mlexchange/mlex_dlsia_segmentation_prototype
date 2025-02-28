@@ -3,3 +3,4 @@ dvclive==3.44.0
 dlsia==0.3.1
 pydantic==2.6.3
 tiled[client]==0.1.0a114
+torch<=2.3.0
