@@ -10,8 +10,8 @@ from dvclive import Live
 from tiled.client import from_uri
 from torchvision import transforms
 
-from .network import build_network
-from .parameters import (
+from network import build_network
+from parameters import (
     IOParameters,
     MSDNetParameters,
     SMSNetEnsembleParameters,
@@ -105,7 +105,7 @@ def train(args):
     weights = torch.tensor(weights, dtype=torch.float).to(device)
     criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
 
-    use_dvclive = True
+    use_dvclive = False
     use_savedvcexp = False
 
     for idx, net in enumerate(networks):
