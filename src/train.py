@@ -105,7 +105,7 @@ def train(args):
     weights = torch.tensor(weights, dtype=torch.float).to(device)
     criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
 
-    use_dvclive = False
+    use_dvclive = True
     use_savedvcexp = False
 
     for idx, net in enumerate(networks):
