@@ -101,6 +101,7 @@ if __name__ == "__main__":
         seg_tiled_uri=io_parameters.seg_tiled_uri,
         seg_tiled_api_key=io_parameters.seg_tiled_api_key,
         uid=io_parameters.uid_save,
+        job_name=io_parameters.job_name,
         model=network,
         array_name="seg_result",
     )

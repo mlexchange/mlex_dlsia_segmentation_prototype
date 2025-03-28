@@ -51,6 +51,7 @@ def allocate_array_space(
     seg_tiled_uri,
     seg_tiled_api_key,
     uid,
+    job_name,
     model,
     array_name,
 ):
@@ -86,6 +87,7 @@ def allocate_array_space(
         "mask_uri": mask_uri,
         "mask_idx": tiled_dataset.mask_idx,
         "uid": uid,
+        "job_name": job_name,
         "model": model,
     }
 

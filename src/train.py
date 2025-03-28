@@ -10,8 +10,8 @@ from dvclive import Live
 from tiled.client import from_uri
 from torchvision import transforms
 
-from .network import build_network
-from .parameters import (
+from network import build_network
+from parameters import (
     IOParameters,
     MSDNetParameters,
     SMSNetEnsembleParameters,
