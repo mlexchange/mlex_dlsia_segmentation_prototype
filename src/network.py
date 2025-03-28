@@ -223,7 +223,7 @@ def build_network(
     if parameters.convolution is not None:
         convolution = getattr(nn, parameters.convolution)
 
-    if network == "MSDNet":
+    if network == "DLSIA MSDNet":
         network = build_msdnet(
             in_channels,
             out_channels,
@@ -233,7 +233,7 @@ def build_network(
             convolution,
         )
 
-    elif network == "TUNet":
+    elif network == "DLSIA TUNet":
         network = build_tunet(
             in_channels,
             out_channels,
@@ -243,7 +243,7 @@ def build_network(
             normalization,
         )
 
-    elif network == "TUNet3+":
+    elif network == "DLSIA TUNet3+":
         network = build_tunet3plus(
             in_channels,
             out_channels,
@@ -253,7 +253,7 @@ def build_network(
             normalization,
         )
 
-    elif network == "SMSNetEnsemble":
+    elif network == "DLSIA SMSNetEnsemble":
         network = build_smsnet_ensemble(
             in_channels,
             out_channels,
@@ -268,13 +268,13 @@ def load_network(
     params_path,
 ):
 
-    if network == "MSDNet":
+    if network == "DLSIA MSDNet":
         network = msdnet.MSDNetwork_from_file(params_path)
 
-    elif network == "TUNet":
+    elif network == "DLSIA TUNet":
         network = tunet.TUNetwork_from_file(params_path)
 
-    elif network == "TUNet3+":
+    elif network == "DLSIA TUNet3+":
         network = tunet3plus.TUNetwork3Plus_from_file(params_path)
 
     return network

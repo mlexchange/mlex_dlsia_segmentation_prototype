@@ -13,7 +13,7 @@ io_parameters:
   models_dir: .
 
 model_parameters:
-  network: "MSDNet"
+  network: "DLSIA MSDNet"
   num_classes: 3
   num_epochs: 3
   optimizer: "Adam"
