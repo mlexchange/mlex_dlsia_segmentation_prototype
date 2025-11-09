@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import mlflow  # NEW: Add this import
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -34,6 +35,16 @@ def train(args):
     io_parameters = IOParameters(**io_parameters)
     # Check whether mask_uri has been provided as this is a requirement for training.
     assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
+
+    # NEW: Setup MLflow - START
+    os.environ["MLFLOW_TRACKING_USERNAME"] = io_parameters.mlflow_tracking_username
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = io_parameters.mlflow_tracking_password
+    mlflow.set_tracking_uri(io_parameters.mlflow_uri)
+    print(f"Setting MLflow tracking uri: {io_parameters.mlflow_uri}")
+
+    mlflow.set_experiment(io_parameters.uid_save)
+    print(f"Setting MLflow experiment name: {io_parameters.uid_save}")
+    # NEW: Setup MLflow - END
 
     # Detect which model we have, then load corresponding parameters
     raw_parameters = parameters["model_parameters"]
@@ -108,48 +119,79 @@ def train(args):
     use_dvclive = True
     use_savedvcexp = False
 
-    for idx, net in enumerate(networks):
-        print(f"{network}: {idx+1}/{len(networks)}")
-        optimizer = getattr(optim, model_parameters.optimizer)
-        optimizer = optimizer(net.parameters(), lr=model_parameters.learning_rate)
-        net = net.to(device)
+    # NEW: Start MLflow run - START
+    with mlflow.start_run() as run:
+        run_id = run.info.run_id
+        print(f"MLflow Run ID: {run_id}")
 
-        if use_dvclive:
-            dvclive_savepath = f"{model_dir}/dvc_metrics"
-            dvclive = Live(dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp)
-        else:
-            dvclive = None
+        # NEW: Log hyperparameters
+        mlflow.log_params({
+            "network": network,
+            "num_classes": model_parameters.num_classes,
+            "num_epochs": model_parameters.num_epochs,
+            "optimizer": model_parameters.optimizer,
+            "criterion": model_parameters.criterion,
+            "learning_rate": model_parameters.learning_rate,
+            "batch_size_train": model_parameters.batch_size_train,
+            "batch_size_val": model_parameters.batch_size_val,
+            "val_pct": model_parameters.val_pct,
+        })
+        # NEW: Start MLflow run - END
 
-        trainer = Trainer(
-            net,
-            train_loader,
-            val_loader,
-            model_parameters.num_epochs,
-            criterion,
-            optimizer,
-            device,
-            dvclive=dvclive,
-            savepath=model_dir,
-            saveevery=None,
-            scheduler=None,
-            show=0,
-            use_amp=False,
-            clip_value=None,
-        )
-        net, results = trainer.train_segmentation()  # training happens here
+        for idx, net in enumerate(networks):
+            print(f"{network}: {idx+1}/{len(networks)}")
+            optimizer = getattr(optim, model_parameters.optimizer)
+            optimizer = optimizer(net.parameters(), lr=model_parameters.learning_rate)
+            net = net.to(device)
 
-        # Save network parameters
-        model_params_path = os.path.join(
-            model_dir, f"{io_parameters.uid_save}_{network}{idx+1}.pt"
-        )
+            if use_dvclive:
+                dvclive_savepath = f"{model_dir}/dvc_metrics"
+                dvclive = Live(dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp)
+            else:
+                dvclive = None
 
-        print(f"!!!!!!!   model_params_path {model_params_path}")
+            trainer = Trainer(
+                net,
+                train_loader,
+                val_loader,
+                model_parameters.num_epochs,
+                criterion,
+                optimizer,
+                device,
+                dvclive=dvclive,
+                savepath=model_dir,
+                saveevery=None,
+                scheduler=None,
+                show=0,
+                use_amp=False,
+                clip_value=None,
+            )
+            net, results = trainer.train_segmentation()  # training happens here
 
-        net.save_network_parameters(model_params_path)
-        # Clear out unnecessary variables from device memory
-        torch.cuda.empty_cache()
+            # # Save network parameters
+            # model_params_path = os.path.join(
+            #     model_dir, f"{io_parameters.uid_save}_{network}{idx+1}.pt"
+            # )
 
-    print(f"{network} trained successfully.")
+            # print(f"!!!!!!!   model_params_path {model_params_path}")
+
+            # net.save_network_parameters(model_params_path)
+            
+            # NEW: Log model to MLflow - START
+            mlflow.pytorch.log_model(
+                net, 
+                f"model_{idx+1}",
+                registered_model_name=io_parameters.uid_save
+            )
+            print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
+            # NEW: Log model to MLflow - END
+            
+            # Clear out unnecessary variables from device memory
+            torch.cuda.empty_cache()
+
+        print(f"{network} trained successfully.")
+        print(f"Model(s) saved to MLflow registry")
+    # NEW: End MLflow run context
 
 
 if __name__ == "__main__":
