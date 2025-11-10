@@ -98,14 +98,14 @@ if __name__ == "__main__":
         model_name = io_parameters.mlflow_model
     else:
         model_name = io_parameters.uid_retrieve
-    
+
     # Handle ensemble vs single model
     if network == "DLSIA SMSNetEnsemble":
         print(f"Loading ensemble models from MLflow registry: {model_name}")
         # Get all versions of the registered model
         client = mlflow.MlflowClient()
         model_versions = client.search_model_versions(f"name='{model_name}'")
-        
+
         # Load all models
         list_of_models = []
         for mv in sorted(model_versions, key=lambda x: int(x.version)):
@@ -113,10 +113,12 @@ if __name__ == "__main__":
             print(f"Loading model version {mv.version} from {model_uri}")
             model = mlflow.pytorch.load_model(model_uri)
             list_of_models.append(model)
-        
+
         # Create ensemble using baggin
         net = model_baggin(models=list_of_models, model_type="classification")
-        print(f"Ensemble created with {len(list_of_models)} models from MLflow registry")
+        print(
+            f"Ensemble created with {len(list_of_models)} models from MLflow registry"
+        )
     else:
         # Single model case
         print(f"Loading latest model from MLflow registry: {model_name}")

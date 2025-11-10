@@ -125,17 +125,19 @@ def train(args):
         print(f"MLflow Run ID: {run_id}")
 
         # NEW: Log hyperparameters
-        mlflow.log_params({
-            "network": network,
-            "num_classes": model_parameters.num_classes,
-            "num_epochs": model_parameters.num_epochs,
-            "optimizer": model_parameters.optimizer,
-            "criterion": model_parameters.criterion,
-            "learning_rate": model_parameters.learning_rate,
-            "batch_size_train": model_parameters.batch_size_train,
-            "batch_size_val": model_parameters.batch_size_val,
-            "val_pct": model_parameters.val_pct,
-        })
+        mlflow.log_params(
+            {
+                "network": network,
+                "num_classes": model_parameters.num_classes,
+                "num_epochs": model_parameters.num_epochs,
+                "optimizer": model_parameters.optimizer,
+                "criterion": model_parameters.criterion,
+                "learning_rate": model_parameters.learning_rate,
+                "batch_size_train": model_parameters.batch_size_train,
+                "batch_size_val": model_parameters.batch_size_val,
+                "val_pct": model_parameters.val_pct,
+            }
+        )
         # NEW: Start MLflow run - END
 
         for idx, net in enumerate(networks):
@@ -146,7 +148,9 @@ def train(args):
 
             if use_dvclive:
                 dvclive_savepath = f"{model_dir}/dvc_metrics"
-                dvclive = Live(dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp)
+                dvclive = Live(
+                    dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp
+                )
             else:
                 dvclive = None
 
@@ -176,16 +180,14 @@ def train(args):
             # print(f"!!!!!!!   model_params_path {model_params_path}")
 
             # net.save_network_parameters(model_params_path)
-            
+
             # NEW: Log model to MLflow - START
             mlflow.pytorch.log_model(
-                net, 
-                f"model_{idx+1}",
-                registered_model_name=io_parameters.uid_save
+                net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
             )
             print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
             # NEW: Log model to MLflow - END
-            
+
             # Clear out unnecessary variables from device memory
             torch.cuda.empty_cache()
 
