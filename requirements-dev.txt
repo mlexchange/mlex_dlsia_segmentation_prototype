@@ -4,3 +4,4 @@ isort==5.13.2
 pre-commit==3.6.2
 tiled[all]==0.1.0a114
 pytest
+pytest-asyncio
