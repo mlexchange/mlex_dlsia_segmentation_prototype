@@ -9,9 +9,9 @@ import yaml
 from dlsia.core.train_scripts import Trainer
 from qlty.qlty2D import NCYXQuilt
 
-from network import build_network
-from tiled_dataset import initialize_tiled_datasets
-from utils import (
+from mlex_dlsia.network import build_network
+from mlex_dlsia.tiled_dataset import initialize_tiled_datasets
+from mlex_dlsia.utils import (
     allocate_array_space,
     construct_dataloaders,
     create_directory,

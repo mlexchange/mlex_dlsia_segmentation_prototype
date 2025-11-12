@@ -1,5 +1,0 @@
-qlty==0.2.0
-dvclive==3.44.0
-dlsia==0.3.1
-pydantic==1.10.15
-tiled[client]==0.1.0a114

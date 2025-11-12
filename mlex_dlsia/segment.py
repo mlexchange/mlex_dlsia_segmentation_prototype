@@ -6,8 +6,8 @@ import torch
 import yaml
 from qlty.qlty2D import NCYXQuilt
 
-from tiled_dataset import initialize_tiled_datasets
-from utils import (
+from mlex_dlsia.tiled_dataset import initialize_tiled_datasets
+from mlex_dlsia.utils import (
     allocate_array_space,
     construct_dataloaders,
     ensure_parent_containers,

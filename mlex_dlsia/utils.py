@@ -9,15 +9,15 @@ from tiled.client import from_uri
 from tiled.structures.array import ArrayStructure
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
-from network import baggin_smsnet_ensemble, load_network
-from parameters import (
+from mlex_dlsia.network import baggin_smsnet_ensemble, load_network
+from mlex_dlsia.parameters import (
     IOParameters,
     MSDNetParameters,
     SMSNetEnsembleParameters,
     TUNet3PlusParameters,
     TUNetParameters,
 )
-from tiled_dataset import TiledMaskedDataset
+from mlex_dlsia.tiled_dataset import TiledMaskedDataset
 
 
 def validate_parameters(parameters):
