@@ -171,7 +171,6 @@ def train(args):
             )
             net, results = trainer.train_segmentation()  # training happens here
 
-
             # NEW: Log model to MLflow - START
             mlflow.pytorch.log_model(
                 net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
