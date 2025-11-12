@@ -138,7 +138,6 @@ def train(args):
                 "val_pct": model_parameters.val_pct,
             }
         )
-        # NEW: Start MLflow run - END
 
         for idx, net in enumerate(networks):
             print(f"{network}: {idx+1}/{len(networks)}")
@@ -172,28 +171,18 @@ def train(args):
             )
             net, results = trainer.train_segmentation()  # training happens here
 
-            # # Save network parameters
-            # model_params_path = os.path.join(
-            #     model_dir, f"{io_parameters.uid_save}_{network}{idx+1}.pt"
-            # )
-
-            # print(f"!!!!!!!   model_params_path {model_params_path}")
-
-            # net.save_network_parameters(model_params_path)
 
             # NEW: Log model to MLflow - START
             mlflow.pytorch.log_model(
                 net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
             )
             print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
-            # NEW: Log model to MLflow - END
 
             # Clear out unnecessary variables from device memory
             torch.cuda.empty_cache()
 
         print(f"{network} trained successfully.")
         print(f"Model(s) saved to MLflow registry")
-    # NEW: End MLflow run context
 
 
 if __name__ == "__main__":
