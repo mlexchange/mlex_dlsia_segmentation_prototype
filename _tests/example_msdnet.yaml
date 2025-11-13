@@ -8,12 +8,12 @@ io_parameters:
   mask_tiled_api_key: d4e5f6
   seg_tiled_uri: "http://seg/tiled/uri"
   seg_tiled_api_key: g7h8i9
-  uid_save: pytest2
-  uid_retrieve: pytest2
+  uid_save: pytest1
+  uid_retrieve: pytest1
   models_dir: .
 
 model_parameters:
-  network: "DLSIA TUNet"
+  network: "DLSIA MSDNet"
   num_classes: 2
   num_epochs: 2
   optimizer: "Adam"
@@ -24,7 +24,7 @@ model_parameters:
   normalization: "BatchNorm2d"
   convolution: "Conv2d"
 
-  qlty_window: 4
+  qlty_window: 8
   qlty_step: 2
   qlty_border: 1
 
@@ -36,7 +36,7 @@ model_parameters:
   batch_size_inference: 2
   val_pct: 0.2
 
-  depth: 2
-  base_channels: 4
-  growth_rate: 2
-  hidden_rate: 1
+  layer_width: 1
+  num_layers: 3
+  custom_dilation: True
+  dilation_array: "[1, 2, 4]"

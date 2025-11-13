@@ -8,23 +8,23 @@ io_parameters:
   mask_tiled_api_key: d4e5f6
   seg_tiled_uri: "http://seg/tiled/uri"
   seg_tiled_api_key: g7h8i9
-  uid_save: pytest4
-  uid_retrieve: pytest4
+  uid_save: pytest2
+  uid_retrieve: pytest2
   models_dir: .
 
 model_parameters:
-  network: "DLSIA SMSNetEnsemble"
+  network: "DLSIA TUNet"
   num_classes: 2
   num_epochs: 2
   optimizer: "Adam"
   criterion: "CrossEntropyLoss"
-  weights: "[2.0, 0.1]"
+  weights: "[1.0, 0.5]"
   learning_rate: 0.1
   activation: "ReLU"
   normalization: "BatchNorm2d"
   convolution: "Conv2d"
 
-  qlty_window: 4
+  qlty_window: 8
   qlty_step: 2
   qlty_border: 1
 
@@ -36,10 +36,7 @@ model_parameters:
   batch_size_inference: 2
   val_pct: 0.2
 
-  num_networks: 2
-  layers: 3
-  alpha: 0.0
-  gamma: 0.0
-  hidden_channels: null
-  dilation_choices: "[1, 2, 3]"
-  max_trial: 2
+  depth: 2
+  base_channels: 4
+  growth_rate: 2
+  hidden_rate: 1
