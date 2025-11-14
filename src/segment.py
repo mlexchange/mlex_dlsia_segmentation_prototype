@@ -1,14 +1,14 @@
 import argparse
-import glob
 import os
 
+import mlflow
 import torch
 import yaml
+from dlsia.core.networks.baggins import model_baggin
 from qlty.qlty2D import NCYXQuilt
 from tiled.client import from_uri
 from torchvision import transforms
 
-from network import baggin_smsnet_ensemble, load_network
 from parameters import (
     IOParameters,
     MSDNetParameters,
@@ -34,6 +34,13 @@ if __name__ == "__main__":
     # Validate and load I/O related parameters
     io_parameters = parameters["io_parameters"]
     io_parameters = IOParameters(**io_parameters)
+
+    # NEW: Setup MLflow - START
+    os.environ["MLFLOW_TRACKING_USERNAME"] = io_parameters.mlflow_tracking_username
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = io_parameters.mlflow_tracking_password
+    mlflow.set_tracking_uri(io_parameters.mlflow_uri)
+    print(f"Setting MLflow tracking uri: {io_parameters.mlflow_uri}")
+    # NEW: Setup MLflow - END
 
     # Detect which model we have, then load corresponding parameters
     raw_parameters = parameters["model_parameters"]
@@ -86,14 +93,38 @@ if __name__ == "__main__":
     torch.cuda.empty_cache()
     print(f"Inference will be processed on: {device}")
 
-    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_retrieve)
-
-    # Load Network
-    if network == "SMSNetEnsemble":
-        net = baggin_smsnet_ensemble(model_dir)
+    # NEW: Load model(s) from MLflow - START
+    if hasattr(io_parameters, "mlflow_model") and io_parameters.mlflow_model:
+        model_name = io_parameters.mlflow_model
     else:
-        net_files = glob.glob(os.path.join(model_dir, "*.pt"))
-        net = load_network(network, net_files[0])
+        model_name = io_parameters.uid_retrieve
+
+    # Handle ensemble vs single model
+    if network == "DLSIA SMSNetEnsemble":
+        print(f"Loading ensemble models from MLflow registry: {model_name}")
+        # Get all versions of the registered model
+        client = mlflow.MlflowClient()
+        model_versions = client.search_model_versions(f"name='{model_name}'")
+
+        # Load all models
+        list_of_models = []
+        for mv in sorted(model_versions, key=lambda x: int(x.version)):
+            model_uri = f"models:/{model_name}/{mv.version}"
+            print(f"Loading model version {mv.version} from {model_uri}")
+            model = mlflow.pytorch.load_model(model_uri)
+            list_of_models.append(model)
+
+        # Create ensemble using baggin
+        net = model_baggin(models=list_of_models, model_type="classification")
+        print(
+            f"Ensemble created with {len(list_of_models)} models from MLflow registry"
+        )
+    else:
+        # Single model case
+        print(f"Loading latest model from MLflow registry: {model_name}")
+        net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
+        print(f"Model loaded from MLflow registry: models:/{model_name}/latest")
+    # NEW: Load model(s) from MLflow - END
 
     # Allocate Result space in Tiled
     seg_client = allocate_array_space(

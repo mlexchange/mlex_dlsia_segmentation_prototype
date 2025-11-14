@@ -36,7 +36,7 @@ def client(context):
     recons_container = client.create_container("reconstructions")
     recons_container.write_array(np.zeros((2, 3, 3), dtype=np.int8), key="recon1")
     masks_container = client.create_container("masks", metadata={"mask_idx": ["0"]})
-    masks_container.write_array(np.zeros((1, 3, 3), dtype=np.int8), key="mask1")
+    masks_container.write_array(np.zeros((1, 3, 3), dtype=np.int8), key="mask")
     yield client
 
 
