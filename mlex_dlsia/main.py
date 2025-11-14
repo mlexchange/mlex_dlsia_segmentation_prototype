@@ -32,28 +32,31 @@ if __name__ == "__main__":
     io_parameters, model_parameters = validate_parameters(parameters)
     logging.info("Parameters validated successfully.")
 
-    dataset = initialize_tiled_datasets(io_parameters, is_training=args.train)
-    logging.info("Tiled datasets initialized successfully.")
-
-    # Build network
-    # TODO: Assumes that the last channel is the number of channels in the image with a max of 4 channels
-    qlty_window = model_parameters.qlty_window
-    last_channel = dataset.data_client.shape[-1]
-    networks = build_network(
-        network_name=model_parameters.network,
-        in_channels=last_channel if last_channel <= 4 else 1,
-        image_shape=(qlty_window, qlty_window),
-        num_classes=model_parameters.num_classes,
-        parameters=parameters,  # Pass the raw parameters dictionary for network construction
-    )
-
     device = get_device()
     logger.info(f"Process will be processed on: {device}")
 
     if args.train:
+        dataset = initialize_tiled_datasets(
+            io_parameters, model_parameters, is_training=args.train
+        )
+        logging.info("Tiled datasets initialized successfully.")
+
+        # Build network
+        # TODO: Assumes that the last channel is the number of channels in the image with a max of 4 channels
+        qlty_window = model_parameters.qlty_window
+        last_channel = dataset.data_client.shape[-1]
+        networks = build_network(
+            network_name=model_parameters.network,
+            in_channels=last_channel if last_channel <= 4 else 1,
+            image_shape=(qlty_window, qlty_window),
+            num_classes=model_parameters.num_classes,
+            parameters=parameters,  # Pass the raw parameters dictionary for network construction
+        )
+
         train_loader, val_loader = construct_train_dataloaders(
             dataset, model_parameters, is_training=True
         )
+
         net = run_train(
             train_loader, val_loader, io_parameters, networks, model_parameters, device
         )
@@ -61,6 +64,11 @@ if __name__ == "__main__":
     else:
         net = load_network(model_parameters.network, io_parameters.models_dir)
         logging.info("Model loaded successfully for inference.")
+
+    # Prepare dataset for inference
+    dataset = initialize_tiled_datasets(
+        io_parameters, model_parameters, is_training=False
+    )
 
     seg_client = prepare_tiled_containers(
         io_parameters, dataset, model_parameters.network
