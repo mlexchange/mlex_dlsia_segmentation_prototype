@@ -11,6 +11,7 @@ io_parameters:
   uid_save: pytest3
   uid_retrieve: pytest3
   models_dir: .
+  job_name: tunet3plus_test
 
 model_parameters:
   network: "DLSIA TUNet3+"

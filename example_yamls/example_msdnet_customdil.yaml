@@ -11,6 +11,7 @@ io_parameters:
   uid_save:
   uid_retrieve:
   models_dir: .
+  job_name: msdnet_customdil_test
 
 model_parameters:
   network: "DLSIA MSDNet"

@@ -11,6 +11,7 @@ io_parameters:
   uid_save: pytest1
   uid_retrieve: pytest1
   models_dir: .
+  job_name: msdnet_test
 
 model_parameters:
   network: "DLSIA MSDNet"

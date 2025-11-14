@@ -11,6 +11,7 @@ io_parameters:
   uid_save: 7
   uid_retrieve: 8
   models_dir: .
+  job_name: bad_params_test
 
 model_parameters:
   network: "Void Model"

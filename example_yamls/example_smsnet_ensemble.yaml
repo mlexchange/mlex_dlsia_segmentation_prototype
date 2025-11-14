@@ -11,6 +11,7 @@ io_parameters:
   uid_save:
   uid_retrieve:
   models_dir: .
+  job_name: smsnet_ensemble_test
 
 model_parameters:
   network: "DLSIA SMSNetEnsemble"
