@@ -12,13 +12,14 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def _build_criterion(model_parameters, device, ignore_index=-1, size_average=None):
+def _build_criterion(model_parameters, device, ignore_index=-1):
     """
     This function builds the criterion used for model training based on weights provided from the parameters,
     and pass to the device.
     Input:
         model_parameters: class, pydantic validated model parameters
         device: torch.device object, cpu or gpu
+        ignore_index: int, index to ignore in the loss calculation
     Output:
         criterion:
     """
@@ -27,9 +28,7 @@ def _build_criterion(model_parameters, device, ignore_index=-1, size_average=Non
     # Convert the string to a list of floats
     weights = [float(x) for x in model_parameters.weights.strip("[]").split(",")]
     weights = torch.tensor(weights, dtype=torch.float).to(device)
-    criterion = criterion(
-        weight=weights, ignore_index=ignore_index, size_average=size_average
-    )
+    criterion = criterion(weight=weights, ignore_index=ignore_index)
     return criterion
 
 
