@@ -151,7 +151,7 @@ class TiledMaskedDataset(TiledDataset):
         self.patched_data, self.patched_mask = self._load_all_data()
 
     def __len__(self):
-        return len(self.mask_client)
+        return len(self.patched_data)
 
     def __getitem__(self, idx):
         data = self.patched_data[idx]
@@ -178,11 +178,12 @@ class TiledMaskedDataset(TiledDataset):
         return patched_data, patched_mask
 
 
-def initialize_tiled_datasets(io_parameters, is_training=False):
+def initialize_tiled_datasets(io_parameters, model_parameters, is_training=False):
     """
     This function takes Tiled configurations from the io_parameter class, builds the client and constructs TiledDataset.
     Input:
         io_parameters: IOParameters, all io parameters
+        model_parameters: ModelParameters, all model parameters
         is_training: bool, whether the dataset is used for training or inference
     Output:
         dataset: TiledDataset or TiledMaskedDataset
@@ -211,15 +212,31 @@ def initialize_tiled_datasets(io_parameters, is_training=False):
             mask_tiled_client = mask_tiled_client["mask"]
             if is_training:
                 dataset = TiledMaskedDataset(
-                    data_tiled_client, mask_tiled_client, selected_indices
+                    data_tiled_client,
+                    mask_tiled_client,
+                    selected_indices,
+                    qlty_window=model_parameters.qlty_window,
+                    qlty_step=model_parameters.qlty_step,
+                    qlty_border=model_parameters.qlty_border,
                 )
             else:
-                dataset = TiledDataset(data_tiled_client, selected_indices)
+                dataset = TiledDataset(
+                    data_tiled_client,
+                    selected_indices,
+                    qlty_window=model_parameters.qlty_window,
+                    qlty_step=model_parameters.qlty_step,
+                    qlty_border=model_parameters.qlty_border,
+                )
         except KeyError as e:
             raise KeyError(f"Missing information in mask tiled client: {e}")
         except Exception as e:
             raise Exception(f"Error initializing mask tiled client: {e}")
 
     else:
-        dataset = TiledDataset(data_tiled_client=data_tiled_client)
+        dataset = TiledDataset(
+            data_tiled_client=data_tiled_client,
+            qlty_window=model_parameters.qlty_window,
+            qlty_step=model_parameters.qlty_step,
+            qlty_border=model_parameters.qlty_border,
+        )
     return dataset
