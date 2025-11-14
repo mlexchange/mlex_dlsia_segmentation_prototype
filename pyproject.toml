@@ -8,6 +8,9 @@ build-backend = "hatchling.build"
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.isort]
+profile = "black"
+
 [project]
 name = "mlex_dlsia"
 version = "0.2.0"
