@@ -1,10 +1,10 @@
-FROM python:3.9
+FROM python:3.11
 
-COPY requirements.txt requirements.txt
+WORKDIR /app/work
+
+COPY . /app/work
 
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install .
 
-WORKDIR /app/work/
-COPY src/ src/
 CMD ["bash"]
