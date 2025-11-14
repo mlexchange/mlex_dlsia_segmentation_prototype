@@ -19,9 +19,7 @@ logging.basicConfig(level=logging.INFO)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("yaml_path", type=str, help="path of yaml file for parameters")
-    parser.add_argument(
-        "--train", type=bool, default=True, help="whether to train the model"
-    )
+    parser.add_argument("--train", action="store_true", help="train the model")
 
     # Load parameters
     args = parser.parse_args()
@@ -50,11 +48,13 @@ if __name__ == "__main__":
             in_channels=last_channel if last_channel <= 4 else 1,
             image_shape=(qlty_window, qlty_window),
             num_classes=model_parameters.num_classes,
-            parameters=parameters,  # Pass the raw parameters dictionary for network construction
+            parameters=parameters[
+                "model_parameters"
+            ],  # Pass the raw parameters dictionary for network construction
         )
 
         train_loader, val_loader = construct_train_dataloaders(
-            dataset, model_parameters, is_training=True
+            dataset, model_parameters
         )
 
         net = run_train(
