@@ -52,7 +52,7 @@ def test_tiled_masked_dataset(client):
     )
 
     assert tiled_masked_dataset
-    assert len(tiled_masked_dataset) == 2
+    assert len(tiled_masked_dataset) == 32
     assert tiled_masked_dataset.shape == (2, 12, 12)
     # Check data and mask
     for idx in range(2):
