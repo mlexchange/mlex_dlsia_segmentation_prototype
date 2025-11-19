@@ -1,7 +1,8 @@
 import argparse
 import os
+import tempfile
 
-import mlflow  # NEW: Add this import
+import mlflow
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,7 +22,6 @@ from parameters import (
 )
 from seg_utils import crop_split_load
 from tiled_dataset import TiledDataset
-from utils import create_directory
 
 
 def train(args):
@@ -36,7 +36,7 @@ def train(args):
     # Check whether mask_uri has been provided as this is a requirement for training.
     assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
 
-    # NEW: Setup MLflow - START
+    # Setup MLflow
     os.environ["MLFLOW_TRACKING_USERNAME"] = io_parameters.mlflow_tracking_username
     os.environ["MLFLOW_TRACKING_PASSWORD"] = io_parameters.mlflow_tracking_password
     mlflow.set_tracking_uri(io_parameters.mlflow_uri)
@@ -44,7 +44,6 @@ def train(args):
 
     mlflow.set_experiment(io_parameters.uid_save)
     print(f"Setting MLflow experiment name: {io_parameters.uid_save}")
-    # NEW: Setup MLflow - END
 
     # Detect which model we have, then load corresponding parameters
     raw_parameters = parameters["model_parameters"]
@@ -64,9 +63,9 @@ def train(args):
 
     print("Parameters loaded successfully.")
 
-    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
-    # Create Result Directory if not existed
-    create_directory(model_dir)
+    # Always use temporary directory for DVC metrics
+    model_dir = tempfile.mkdtemp(prefix=f"{io_parameters.uid_save}_")
+    print(f"Using temporary directory: {model_dir}")
 
     data_tiled_client = from_uri(
         io_parameters.data_tiled_uri, api_key=io_parameters.data_tiled_api_key
@@ -91,7 +90,6 @@ def train(args):
     data = dataset.data_client[dataset.mask_idx]
     mask = dataset.mask_client[:]
 
-    # train_loader, val_loader = train_val_split(dataset, model_parameters)
     train_loader, val_loader = crop_split_load(data, mask, model_parameters)
 
     # Build network
@@ -110,8 +108,6 @@ def train(args):
 
     # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
-    # Convert the string to a list of floats
-
     weights = [float(x) for x in model_parameters.weights.strip("[]").split(",")]
     weights = torch.tensor(weights, dtype=torch.float).to(device)
     criterion = criterion(weight=weights, ignore_index=-1, size_average=None)
@@ -119,12 +115,12 @@ def train(args):
     use_dvclive = True
     use_savedvcexp = False
 
-    # NEW: Start MLflow run - START
+    # Start MLflow run
     with mlflow.start_run() as run:
         run_id = run.info.run_id
         print(f"MLflow Run ID: {run_id}")
 
-        # NEW: Log hyperparameters
+        # Log hyperparameters
         mlflow.log_params(
             {
                 "network": network,
@@ -169,19 +165,24 @@ def train(args):
                 use_amp=False,
                 clip_value=None,
             )
-            net, results = trainer.train_segmentation()  # training happens here
+            net, results = trainer.train_segmentation()
 
-            # NEW: Log model to MLflow - START
+            # Log model to MLflow
             mlflow.pytorch.log_model(
                 net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
             )
             print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
 
+            # Log DVC metrics to MLflow
+            if use_dvclive and os.path.exists(dvclive_savepath):
+                mlflow.log_artifacts(dvclive_savepath, artifact_path="dvc_metrics")
+                print(f"DVC metrics logged to MLflow from {dvclive_savepath}")
+
             # Clear out unnecessary variables from device memory
             torch.cuda.empty_cache()
 
         print(f"{network} trained successfully.")
-        print(f"Model(s) saved to MLflow registry")
+        print(f"Model(s) and metrics saved to MLflow")
 
 
 if __name__ == "__main__":
