@@ -1,3 +1,5 @@
+import tempfile
+
 import pytest
 import torch
 from dlsia.core.helpers import get_device
@@ -39,6 +41,8 @@ def test_train_network(validated_params_with_raw):
         )
         assert all(isinstance(n, torch.nn.Module) for n in net)
 
+        model_dir = tempfile.mkdtemp()
+
         device = get_device()
         run_train(
             train_loader,
@@ -47,6 +51,7 @@ def test_train_network(validated_params_with_raw):
             net,
             model_parameters,
             device,
+            model_dir,
             use_dvclive=False,
         )
     except Exception as e:

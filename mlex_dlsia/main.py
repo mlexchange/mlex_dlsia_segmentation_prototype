@@ -1,5 +1,6 @@
 import argparse
 import logging
+import tempfile
 
 import yaml
 from dlsia.core.helpers import get_device
@@ -33,7 +34,12 @@ if __name__ == "__main__":
     device = get_device()
     logger.info(f"Process will be processed on: {device}")
 
+    # Always use temporary directory for DVC metrics
+    model_dir = tempfile.mkdtemp(prefix=f"{io_parameters.uid_save}_")
+    print(f"Using temporary directory: {model_dir}")
+
     if args.train:
+
         dataset = initialize_tiled_datasets(
             io_parameters, model_parameters, is_training=args.train
         )
@@ -58,11 +64,21 @@ if __name__ == "__main__":
         )
 
         net = run_train(
-            train_loader, val_loader, io_parameters, networks, model_parameters, device
+            train_loader,
+            val_loader,
+            io_parameters,
+            networks,
+            model_parameters,
+            device,
+            model_dir,
         )
         logging.info("Training completed successfully.")
     else:
-        net = load_network(model_parameters.network, io_parameters.models_dir)
+        if hasattr(io_parameters, "mlflow_model") and io_parameters.mlflow_model:
+            model_name = io_parameters.mlflow_model
+        else:
+            model_name = io_parameters.uid_retrieve
+        net = load_network(model_parameters.network, model_name)
         logging.info("Model loaded successfully for inference.")
 
     # Prepare dataset for inference

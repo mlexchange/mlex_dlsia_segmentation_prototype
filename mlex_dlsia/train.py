@@ -1,6 +1,7 @@
 import logging
 import os
 
+import mlflow
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -39,6 +40,7 @@ def run_train(
     networks,
     model_parameters,
     device,
+    model_dir,
     use_dvclive=True,
     use_savedvcexp=False,
 ):
@@ -51,14 +53,12 @@ def run_train(
         networks: list of nn.Module objects to be trained
         model_parameters: class, pydantic validated model parameters
         device: torch.device object, cpu or gpu
+        model_dir: str, directory to save model parameters and metrics
         use_dvclive: bool, whether to use dvclive for logging
         use_savedvcexp: bool, whether to save dvclive experiments
     Output:
         net: nn.Module object, trained network
     """
-    model_dir = os.path.join(io_parameters.models_dir, io_parameters.uid_save)
-    os.makedirs(model_dir, exist_ok=True)
-
     torch.cuda.empty_cache()
     criterion = _build_criterion(model_parameters, device)
 
@@ -95,11 +95,7 @@ def run_train(
             clip_value=None,
         )
         net, _ = trainer.train_segmentation()  # training happens here
-        # Save network parameters
-        model_params_path = os.path.join(
-            model_dir, f"{io_parameters.uid_save}_{network_name}{idx+1}.pt"
-        )
-        net.save_network_parameters(model_params_path)
+
         trained_nets.append(net)
         # Clear out unnecessary variables from device memory
         torch.cuda.empty_cache()
@@ -109,4 +105,15 @@ def run_train(
         net = baggin_smsnet_ensemble(networks=trained_nets)
     else:
         net = trained_nets[0]
+
+    # Log model to MLflow
+    mlflow.pytorch.log_model(
+        net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
+    )
+    print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
+
+    # Log DVC metrics to MLflow
+    if use_dvclive and os.path.exists(dvclive_savepath):
+        mlflow.log_artifacts(dvclive_savepath, artifact_path="dvc_metrics")
+        print(f"DVC metrics logged to MLflow from {dvclive_savepath}")
     return net

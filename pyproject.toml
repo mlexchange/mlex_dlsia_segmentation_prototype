@@ -24,6 +24,7 @@ dependencies = [
   "dlsia==0.3.4",
   "pydantic>=1.10.15",
   "tiled[client]==0.2.0",
+  "mlflow==2.22.0"
 ]
 
 [project.optional-dependencies]
@@ -34,5 +35,5 @@ dev = [
     "pre-commit==3.6.2",
     "tiled[all]==0.2.0",
     "pytest==8.1.1",
-    "pytest-asyncio"
+    "pytest-asyncio",
 ]
