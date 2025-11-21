@@ -27,7 +27,6 @@ class IOParameters(BaseModel):
     models_dir: Optional[str] = Field(
         default=None, description="directory to save model results"
     )
-    # NEW: MLflow parameters
     mlflow_uri: Optional[str] = Field(
         default="http://mlflow:5000", description="MLflow tracking uri (optional)"
     )
