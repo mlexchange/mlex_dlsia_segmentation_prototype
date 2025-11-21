@@ -59,58 +59,82 @@ def run_train(
     Output:
         net: nn.Module object, trained network
     """
-    torch.cuda.empty_cache()
-    criterion = _build_criterion(model_parameters, device)
+    mlflow.set_experiment(io_parameters.uid_save)
+    print(f"Setting MLflow experiment name: {io_parameters.uid_save}")
 
-    network_name = model_parameters.network
-    trained_nets = []
-    for idx, net in enumerate(networks):
-        logger.info(f"{network_name}: {idx+1}/{len(networks)}")
-        optimizer = getattr(optim, model_parameters.optimizer)
-        optimizer = optimizer(net.parameters(), lr=model_parameters.learning_rate)
-        net = net.to(device)
+    with mlflow.start_run() as run:
+        run_id = run.info.run_id
+        logging.info(f"MLflow Run ID: {run_id}")
 
-        if use_dvclive:
-            from dvclive import Live
-
-            dvclive_savepath = f"{model_dir}/dvc_metrics"
-            dvclive = Live(dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp)
-        else:
-            dvclive = None
-
-        trainer = Trainer(
-            net,
-            train_loader,
-            val_loader,
-            model_parameters.num_epochs,
-            criterion,
-            optimizer,
-            device,
-            dvclive=dvclive,
-            savepath=model_dir,
-            saveevery=None,
-            scheduler=None,
-            show=0,
-            use_amp=False,
-            clip_value=None,
+        # NEW: Log hyperparameters
+        mlflow.log_params(
+            {
+                "network": model_parameters.network,
+                "num_classes": model_parameters.num_classes,
+                "num_epochs": model_parameters.num_epochs,
+                "optimizer": model_parameters.optimizer,
+                "criterion": model_parameters.criterion,
+                "learning_rate": model_parameters.learning_rate,
+                "batch_size_train": model_parameters.batch_size_train,
+                "batch_size_val": model_parameters.batch_size_val,
+                "val_pct": model_parameters.val_pct,
+            }
         )
-        net, _ = trainer.train_segmentation()  # training happens here
 
-        trained_nets.append(net)
-        # Clear out unnecessary variables from device memory
         torch.cuda.empty_cache()
-    logger.info(f"{network_name} trained successfully.")
+        criterion = _build_criterion(model_parameters, device)
 
-    if model_parameters.network == "DLSIA SMSNetEnsemble":
-        net = baggin_smsnet_ensemble(networks=trained_nets)
-    else:
-        net = trained_nets[0]
+        network_name = model_parameters.network
+        trained_nets = []
+        for idx, net in enumerate(networks):
+            logger.info(f"{network_name}: {idx+1}/{len(networks)}")
+            optimizer = getattr(optim, model_parameters.optimizer)
+            optimizer = optimizer(net.parameters(), lr=model_parameters.learning_rate)
+            net = net.to(device)
 
-    # Log model to MLflow
-    mlflow.pytorch.log_model(
-        net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
-    )
-    print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
+            if use_dvclive:
+                from dvclive import Live
+
+                dvclive_savepath = f"{model_dir}/dvc_metrics"
+                dvclive = Live(
+                    dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp
+                )
+            else:
+                dvclive = None
+
+            trainer = Trainer(
+                net,
+                train_loader,
+                val_loader,
+                model_parameters.num_epochs,
+                criterion,
+                optimizer,
+                device,
+                dvclive=dvclive,
+                savepath=model_dir,
+                saveevery=None,
+                scheduler=None,
+                show=0,
+                use_amp=False,
+                clip_value=None,
+            )
+            net, _ = trainer.train_segmentation()  # training happens here
+
+            trained_nets.append(net)
+            # Clear out unnecessary variables from device memory
+            torch.cuda.empty_cache()
+        logger.info(f"{network_name} trained successfully.")
+
+        if model_parameters.network == "DLSIA SMSNetEnsemble":
+            net = baggin_smsnet_ensemble(networks=trained_nets)
+        else:
+            net = trained_nets[0]
+
+        # Log model to MLflow
+        mlflow.pytorch.log_model(
+            net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
+        )
+        print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
 
     # Log DVC metrics to MLflow
     if use_dvclive and os.path.exists(dvclive_savepath):

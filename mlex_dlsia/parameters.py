@@ -27,6 +27,18 @@ class IOParameters(BaseModel):
     models_dir: Optional[str] = Field(
         default=None, description="directory to save model results"
     )
+    mlflow_uri: Optional[str] = Field(
+        default="http://mlflow:5000", description="MLflow tracking uri (optional)"
+    )
+    mlflow_tracking_username: Optional[str] = Field(
+        default="admin", description="MLflow tracking username (optional)"
+    )
+    mlflow_tracking_password: Optional[str] = Field(
+        default="passwd", description="MLflow tracking password (optional)"
+    )
+    mlflow_model: Optional[str] = Field(
+        default=None, description="MLflow model name (optional)"
+    )
 
 
 # ===========================================General Parameters===========================================#

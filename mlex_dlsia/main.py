@@ -1,7 +1,9 @@
 import argparse
 import logging
+import os
 import tempfile
 
+import mlflow
 import yaml
 from dlsia.core.helpers import get_device
 
@@ -34,12 +36,17 @@ if __name__ == "__main__":
     device = get_device()
     logger.info(f"Process will be processed on: {device}")
 
+    # Setup MLflow
+    os.environ["MLFLOW_TRACKING_USERNAME"] = io_parameters.mlflow_tracking_username
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = io_parameters.mlflow_tracking_password
+    mlflow.set_tracking_uri(io_parameters.mlflow_uri)
+    logging.info(f"Setting MLflow tracking uri: {io_parameters.mlflow_uri}")
+
     # Always use temporary directory for DVC metrics
     model_dir = tempfile.mkdtemp(prefix=f"{io_parameters.uid_save}_")
-    print(f"Using temporary directory: {model_dir}")
+    logging.info(f"Using temporary directory: {model_dir}")
 
     if args.train:
-
         dataset = initialize_tiled_datasets(
             io_parameters, model_parameters, is_training=args.train
         )
@@ -78,7 +85,7 @@ if __name__ == "__main__":
             model_name = io_parameters.mlflow_model
         else:
             model_name = io_parameters.uid_retrieve
-        net = load_network(model_parameters.network, model_name)
+        net = load_network(model_name)
         logging.info("Model loaded successfully for inference.")
 
     # Prepare dataset for inference

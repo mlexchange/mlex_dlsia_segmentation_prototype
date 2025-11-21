@@ -85,20 +85,7 @@ def build_network(
     return network
 
 
-def _load_network(
-    network_name,
-    params_path,
-):
-    if network_name == "DLSIA MSDNet":
-        network = msdnet.MSDNetwork_from_file(params_path)
-    elif network_name == "DLSIA TUNet":
-        network = tunet.TUNetwork_from_file(params_path)
-    elif network_name == "DLSIA TUNet3+":
-        network = tunet3plus.TUNetwork3Plus_from_file(params_path)
-    return network
-
-
-def load_network(network_name, model_name):
+def load_network(model_name):
     """
     This function loads pre-trained DLSIA network. Support both single network and ensembles.
     Input:
@@ -107,29 +94,9 @@ def load_network(network_name, model_name):
     Output:
         net: loaded pre-trained network
     """
-    if network_name == "DLSIA SMSNetEnsemble":
-        print(f"Loading ensemble models from MLflow registry: {model_name}")
-        # Get all versions of the registered model
-        client = mlflow.MlflowClient()
-        model_versions = client.search_model_versions(f"name='{model_name}'")
-
-        # Load all models
-        list_of_models = []
-        for mv in sorted(model_versions, key=lambda x: int(x.version)):
-            model_uri = f"models:/{model_name}/{mv.version}"
-            print(f"Loading model version {mv.version} from {model_uri}")
-            model = mlflow.pytorch.load_model(model_uri)
-            list_of_models.append(model)
-
-        # Create ensemble using baggin
-        net = model_baggin(models=list_of_models, model_type="classification")
-        print(
-            f"Ensemble created with {len(list_of_models)} models from MLflow registry"
-        )
-    else:
-        print(f"Loading latest model from MLflow registry: {model_name}")
-        net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
-        print(f"Model loaded from MLflow registry: models:/{model_name}/latest")
+    logging.info(f"Loading latest model from MLflow registry: {model_name}")
+    net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
+    logging.info(f"Model loaded from MLflow registry: models:/{model_name}/latest")
     return net
 
 
