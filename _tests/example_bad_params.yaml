@@ -12,6 +12,10 @@ io_parameters:
   uid_retrieve: 8
   models_dir: .
   job_name: bad_params_test
+  mlflow_uri: 1
+  mlflow_tracking_username: .
+  mlflow_tracking_password: .
+  mlflow_model: bad_params_model
 
 model_parameters:
   network: "Void Model"

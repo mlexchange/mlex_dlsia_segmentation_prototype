@@ -12,6 +12,10 @@ io_parameters:
   uid_retrieve:
   models_dir: .
   job_name: tunet3plus_test
+  mlflow_uri: "http://mlflow:5000"
+  mlflow_tracking_username:
+  mlflow_tracking_password:
+  mlflow_model: model
 
 model_parameters:
   network: "DLSIA TUNet3+"
