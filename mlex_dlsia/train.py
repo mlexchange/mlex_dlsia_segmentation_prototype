@@ -85,7 +85,7 @@ def run_train(
 
         network_name = model_parameters.network
         trained_nets = []
-        
+
         for idx, net in enumerate(networks):
             logger.info(f"{network_name}: {idx+1}/{len(networks)}")
             optimizer = getattr(optim, model_parameters.optimizer)
@@ -121,12 +121,10 @@ def run_train(
             net, _ = trainer.train_segmentation()  # training happens here
 
             trained_nets.append(net)
-            
+
             # Log model to MLflow
             mlflow.pytorch.log_model(
-                net, 
-                f"model_{idx+1}", 
-                registered_model_name=io_parameters.uid_save
+                net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
             )
             logging.info(f"Model logged to MLflow with name: {io_parameters.uid_save}")
 
@@ -134,10 +132,10 @@ def run_train(
             if use_dvclive and os.path.exists(dvclive_savepath):
                 mlflow.log_artifacts(dvclive_savepath, artifact_path="dvc_metrics")
                 logging.info(f"DVC metrics logged to MLflow from {dvclive_savepath}")
-            
+
             # Clear out unnecessary variables from device memory
             torch.cuda.empty_cache()
-            
+
         logger.info(f"{network_name} trained successfully.")
 
         # Create final model (ensemble or single)

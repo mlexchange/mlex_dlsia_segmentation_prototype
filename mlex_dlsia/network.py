@@ -102,7 +102,7 @@ def load_network(model_name, network_type=None):
         logging.info(f"Loading latest model from MLflow registry: {model_name}")
         net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
         logging.info(f"Model loaded from MLflow registry: models:/{model_name}/latest")
-    
+
     return net
 
 
@@ -293,7 +293,7 @@ def build_smsnet_ensemble(
 def baggin_smsnet_ensemble(mlflow_model_name):
     """
     Create an ensemble model from SMSNet networks loaded from MLflow registry.
-    
+
     Input:
         mlflow_model_name: str, name of the model in MLflow registry
     Output:
@@ -311,7 +311,7 @@ def baggin_smsnet_ensemble(mlflow_model_name):
         model = mlflow.pytorch.load_model(model_uri)
         list_of_smsnet.append(model)
     logging.info(f"Loaded {len(list_of_smsnet)} models from MLflow registry")
-    
+
     ensemble = model_baggin(models=list_of_smsnet, model_type="classification")
     logging.info(f"Ensemble created with {len(list_of_smsnet)} models")
     return ensemble
