@@ -1,4 +1,3 @@
-import glob
 import logging
 
 import mlflow
@@ -85,18 +84,25 @@ def build_network(
     return network
 
 
-def load_network(model_name):
+def load_network(model_name, network_type=None):
     """
     This function loads pre-trained DLSIA network. Support both single network and ensembles.
     Input:
-        network: str, name of the DLSIA network to be loaded.
         model_name: str, name of the model in MLflow registry
+        network_type: str, optional, type of network (e.g., "DLSIA SMSNetEnsemble")
     Output:
         net: loaded pre-trained network
     """
-    logging.info(f"Loading latest model from MLflow registry: {model_name}")
-    net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
-    logging.info(f"Model loaded from MLflow registry: models:/{model_name}/latest")
+    # Handle ensemble vs single model
+    if network_type == "DLSIA SMSNetEnsemble":
+        logging.info(f"Loading ensemble models from MLflow registry: {model_name}")
+        net = baggin_smsnet_ensemble(mlflow_model_name=model_name)
+    else:
+        # Single model case
+        logging.info(f"Loading latest model from MLflow registry: {model_name}")
+        net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
+        logging.info(f"Model loaded from MLflow registry: models:/{model_name}/latest")
+    
     return net
 
 
@@ -284,15 +290,28 @@ def build_smsnet_ensemble(
     return list_of_networks
 
 
-def baggin_smsnet_ensemble(networks=None, network_dir=None):
-    if network_dir is not None:
-        net_files = glob.glob(f"{network_dir}/*.pt")
-        list_of_smsnet = []
-        for network in net_files:
-            list_of_smsnet.append(smsnet.SMSNetwork_from_file(network))
-    elif networks is not None:
-        list_of_smsnet = networks
-    else:
-        raise ValueError("Either networks or network_dir must be provided.")
+def baggin_smsnet_ensemble(mlflow_model_name):
+    """
+    Create an ensemble model from SMSNet networks loaded from MLflow registry.
+    
+    Input:
+        mlflow_model_name: str, name of the model in MLflow registry
+    Output:
+        ensemble: bagged ensemble model
+    """
+    # Load all versions from MLflow registry
+    client = mlflow.MlflowClient()
+    model_versions = client.search_model_versions(f"name='{mlflow_model_name}'")
+
+    # Load all models
+    list_of_smsnet = []
+    for mv in sorted(model_versions, key=lambda x: int(x.version)):
+        model_uri = f"models:/{mlflow_model_name}/{mv.version}"
+        logging.info(f"Loading model version {mv.version} from {model_uri}")
+        model = mlflow.pytorch.load_model(model_uri)
+        list_of_smsnet.append(model)
+    logging.info(f"Loaded {len(list_of_smsnet)} models from MLflow registry")
+    
     ensemble = model_baggin(models=list_of_smsnet, model_type="classification")
+    logging.info(f"Ensemble created with {len(list_of_smsnet)} models")
     return ensemble

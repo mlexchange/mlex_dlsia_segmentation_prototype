@@ -30,7 +30,7 @@ if __name__ == "__main__":
         parameters = yaml.safe_load(file)
     logging.info("Parameters loaded from yaml file.")
 
-    io_parameters, model_parameters = validate_parameters(parameters)
+    io_parameters, model_parameters = validate_parameters(parameters, is_training=args.train)
     logging.info("Parameters validated successfully.")
 
     device = get_device()
@@ -81,11 +81,15 @@ if __name__ == "__main__":
         )
         logging.info("Training completed successfully.")
     else:
+        # Load model for inference
         if hasattr(io_parameters, "mlflow_model") and io_parameters.mlflow_model:
             model_name = io_parameters.mlflow_model
-        else:
+        elif hasattr(io_parameters, "uid_retrieve") and io_parameters.uid_retrieve:
             model_name = io_parameters.uid_retrieve
-        net = load_network(model_name)
+        else:
+            raise ValueError("Either mlflow_model or uid_retrieve must be provided for inference mode")
+        
+        net = load_network(model_name, network_type=model_parameters.network)
         logging.info("Model loaded successfully for inference.")
 
     # Prepare dataset for inference

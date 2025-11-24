@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def validate_parameters(parameters):
+def validate_parameters(parameters, is_training=False):
     """
     This function extracts parameters from the whole parameter dict
     and performs pydantic validation for both io-related and model-related parameters.
@@ -22,7 +22,8 @@ def validate_parameters(parameters):
     io_parameters = parameters["io_parameters"]
     io_parameters = IOParameters(**io_parameters)
     # Check whether mask_uri has been provided as this is a requirement for training.
-    assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
+    if is_training:
+        assert io_parameters.mask_tiled_uri, "Mask URI not provided for training."
 
     # Detect which model we have, then load corresponding parameters
     model_parameters = parameters["model_parameters"]

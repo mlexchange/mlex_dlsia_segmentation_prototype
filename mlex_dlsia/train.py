@@ -5,9 +5,8 @@ import mlflow
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from dlsia.core.networks.baggins import model_baggin
 from dlsia.core.train_scripts import Trainer
-
-from mlex_dlsia.network import baggin_smsnet_ensemble
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -60,13 +59,13 @@ def run_train(
         net: nn.Module object, trained network
     """
     mlflow.set_experiment(io_parameters.uid_save)
-    print(f"Setting MLflow experiment name: {io_parameters.uid_save}")
+    logging.info(f"Setting MLflow experiment name: {io_parameters.uid_save}")
 
     with mlflow.start_run() as run:
         run_id = run.info.run_id
         logging.info(f"MLflow Run ID: {run_id}")
 
-        # NEW: Log hyperparameters
+        # Log hyperparameters
         mlflow.log_params(
             {
                 "network": model_parameters.network,
@@ -86,6 +85,7 @@ def run_train(
 
         network_name = model_parameters.network
         trained_nets = []
+        
         for idx, net in enumerate(networks):
             logger.info(f"{network_name}: {idx+1}/{len(networks)}")
             optimizer = getattr(optim, model_parameters.optimizer)
@@ -121,23 +121,30 @@ def run_train(
             net, _ = trainer.train_segmentation()  # training happens here
 
             trained_nets.append(net)
+            
+            # Log model to MLflow
+            mlflow.pytorch.log_model(
+                net, 
+                f"model_{idx+1}", 
+                registered_model_name=io_parameters.uid_save
+            )
+            logging.info(f"Model logged to MLflow with name: {io_parameters.uid_save}")
+
+            # Log DVC metrics to MLflow
+            if use_dvclive and os.path.exists(dvclive_savepath):
+                mlflow.log_artifacts(dvclive_savepath, artifact_path="dvc_metrics")
+                logging.info(f"DVC metrics logged to MLflow from {dvclive_savepath}")
+            
             # Clear out unnecessary variables from device memory
             torch.cuda.empty_cache()
+            
         logger.info(f"{network_name} trained successfully.")
 
+        # Create final model (ensemble or single)
         if model_parameters.network == "DLSIA SMSNetEnsemble":
-            net = baggin_smsnet_ensemble(networks=trained_nets)
+            net = model_baggin(models=trained_nets, model_type="classification")
+            logging.info("Ensemble model created from trained networks")
         else:
             net = trained_nets[0]
 
-        # Log model to MLflow
-        mlflow.pytorch.log_model(
-            net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
-        )
-        print(f"Model logged to MLflow with name: {io_parameters.uid_save}")
-
-    # Log DVC metrics to MLflow
-    if use_dvclive and os.path.exists(dvclive_savepath):
-        mlflow.log_artifacts(dvclive_savepath, artifact_path="dvc_metrics")
-        print(f"DVC metrics logged to MLflow from {dvclive_savepath}")
     return net
