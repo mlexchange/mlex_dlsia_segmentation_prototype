@@ -20,14 +20,14 @@ def patch_tiled_client_from_uri(monkeypatch):
     empty/None API keys properly for the newer Tiled API.
     """
     from tiled.client import from_uri as original_client_from_uri
-    
+
     def from_uri_wrapper(uri, api_key=None, **kwargs):
         """Wrapper that only passes api_key if it's a non-empty string"""
         if api_key and api_key.strip():  # Check if api_key is non-empty
             return original_client_from_uri(uri, api_key=api_key, **kwargs)
         else:
             return original_client_from_uri(uri, **kwargs)
-    
+
     # Patch it in the dataset module where it's actually used
     monkeypatch.setattr("mlex_dlsia.dataset.from_uri", from_uri_wrapper)
     # Also patch it in utils.tiled module
