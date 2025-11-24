@@ -23,14 +23,15 @@ def patch_tiled_client_from_uri(monkeypatch):
 
     def from_uri_wrapper(uri, api_key=None, **kwargs):
         """Wrapper that only passes api_key if it's a non-empty string"""
-        if api_key and api_key.strip():  # Check if api_key is non-empty
+        if api_key and api_key.strip():
             return original_client_from_uri(uri, api_key=api_key, **kwargs)
         else:
             return original_client_from_uri(uri, **kwargs)
 
-    # Patch it in the dataset module where it's actually used
+    # Patch ALL places where from_uri is used
+    monkeypatch.setattr("tiled.client.from_uri", from_uri_wrapper)  # Add this line
+    monkeypatch.setattr("tiled.catalog.from_uri", from_uri_wrapper)  # Add this line
     monkeypatch.setattr("mlex_dlsia.dataset.from_uri", from_uri_wrapper)
-    # Also patch it in utils.tiled module
     monkeypatch.setattr("mlex_dlsia.utils.tiled.from_uri", from_uri_wrapper)
 
 
