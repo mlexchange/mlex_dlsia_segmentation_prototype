@@ -5,6 +5,9 @@ on: pull_request
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
+    env:
+      TILED_ALLOW_ANONYMOUS_ACCESS: "1"
+      
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.11

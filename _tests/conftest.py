@@ -1,10 +1,5 @@
 import os
 
-# Set this BEFORE any Tiled imports
-os.environ["TILED_ALLOW_ANONYMOUS_ACCESS"] = "1"
-# Unset any existing API key to prevent auto-generation
-os.environ.pop("TILED_SINGLE_USER_API_KEY", None)
-
 import numpy as np
 import pytest
 import yaml
@@ -17,29 +12,6 @@ from tiled.structures.data_source import DataSource
 
 from mlex_dlsia.dataset import TiledDataset, TiledMaskedDataset
 from mlex_dlsia.utils.params_validation import validate_parameters
-
-
-# Add this fixture to fix the API key issue
-@pytest.fixture(autouse=True)
-def patch_tiled_client_from_uri(monkeypatch):
-    """
-    Auto-applied fixture that patches tiled.client.from_uri to handle
-    empty/None API keys properly for the newer Tiled API.
-    """
-    from tiled.client import from_uri as original_client_from_uri
-
-    def from_uri_wrapper(uri, api_key=None, **kwargs):
-        """Wrapper that only passes api_key if it's a non-empty string"""
-        if api_key and api_key.strip():  # Check if api_key is non-empty
-            return original_client_from_uri(uri, api_key=api_key, **kwargs)
-        else:
-            return original_client_from_uri(uri, **kwargs)
-
-    # Patch it in ALL locations where from_uri is used
-    monkeypatch.setattr("tiled.client.from_uri", from_uri_wrapper)
-    monkeypatch.setattr("tiled.catalog.from_uri", from_uri_wrapper)
-    monkeypatch.setattr("mlex_dlsia.dataset.from_uri", from_uri_wrapper)
-    monkeypatch.setattr("mlex_dlsia.utils.tiled.from_uri", from_uri_wrapper)
 
 
 @pytest.fixture
