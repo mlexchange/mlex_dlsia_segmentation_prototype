@@ -1,9 +1,10 @@
 import pytest
 import torch
 from dlsia.core.helpers import get_device
+from dlsia.core.networks.baggins import model_baggin
 
 from mlex_dlsia.inference import run_inference
-from mlex_dlsia.network import baggin_smsnet_ensemble, build_network
+from mlex_dlsia.network import build_network
 
 
 def test_run_inference(
@@ -21,7 +22,8 @@ def test_run_inference(
         assert all(isinstance(n, torch.nn.Module) for n in net)
 
         if model_parameters.network == "DLSIA SMSNetEnsemble":
-            net = baggin_smsnet_ensemble(networks=net)
+            # Create ensemble directly using model_baggin instead of baggin_smsnet_ensemble
+            net = model_baggin(models=net, model_type="classification")
         else:
             net = net[0]
 
