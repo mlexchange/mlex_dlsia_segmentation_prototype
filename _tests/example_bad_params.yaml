@@ -1,0 +1,47 @@
+# Example for bad parameters
+
+# I/O
+io_parameters:
+  data_tiled_uri: 1
+  data_tiled_api_key: 2
+  mask_tiled_uri: 3
+  mask_tiled_api_key: 4
+  seg_tiled_uri: 5
+  seg_tiled_api_key: 6
+  uid_save: 7
+  uid_retrieve: 8
+  models_dir: .
+  job_name: bad_params_test
+  mlflow_uri: 1
+  mlflow_tracking_username: .
+  mlflow_tracking_password: .
+  mlflow_model: bad_params_model
+
+model_parameters:
+  network: "Void Model"
+  num_classes: "A"
+  num_epochs: "B"
+  optimizer: 1
+  criterion: 2
+  weights: 3
+  learning_rate: "C"
+  activation: 4
+  normalization: 5
+  convolution: 6
+
+  qlty_window: "d"
+  qlty_step: "e"
+  qlty_border: "f"
+
+  shuffle_train: "g"
+  batch_size_train: "h"
+
+  batch_size_val: "i"
+
+  batch_size_inference: "j"
+  val_pct: "k"
+
+  layer_width: "l"
+  num_layers: "m"
+  custom_dilation: "n"
+  dilation_array: 7

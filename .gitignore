@@ -4,10 +4,14 @@ logs.txt
 test_params.yaml
 uid*/
 .DS_Store
+mlruns/
 
 # dvc related for testing
 .dvc*
 dvc*
+
+#pytest created folders
+pytest*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
