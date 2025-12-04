@@ -96,20 +96,20 @@ if __name__ == "__main__":
         net = load_network(model_name, network_type=model_parameters.network)
         logging.info("Model loaded successfully for inference.")
 
-    # Prepare dataset for inference
-    dataset = initialize_tiled_datasets(
-        io_parameters, model_parameters, is_training=False
-    )
+        # Prepare dataset for inference
+        dataset = initialize_tiled_datasets(
+            io_parameters, model_parameters, is_training=False
+        )
 
-    seg_client = prepare_tiled_containers(
-        io_parameters, dataset, model_parameters.network
-    )
+        seg_client = prepare_tiled_containers(
+            io_parameters, dataset, model_parameters.network
+        )
 
-    run_inference(
-        dataset,
-        net,
-        seg_client,
-        model_parameters,
-        device,
-    )
-    logging.info("Inference completed successfully.")
+        run_inference(
+            dataset,
+            net,
+            seg_client,
+            model_parameters,
+            device,
+        )
+        logging.info("Inference completed successfully.")
