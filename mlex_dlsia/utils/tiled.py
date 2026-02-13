@@ -164,6 +164,8 @@ def copy_tiled_access_info(source_client, target_client):
         None
     """
     access_blob = source_client.access_blob
-    if access_blob and access_blob.get('tags'):
-        target_client.replace_metadata(access_tags = access_blob['tags'])
-    logging.info(f"Tiled access information copied successfully {source_client.access_blob}.")
+    if access_blob and access_blob.get("tags"):
+        target_client.replace_metadata(access_tags=access_blob["tags"])
+    logging.info(
+        f"Tiled access information copied successfully {source_client.access_blob}."
+    )
