@@ -120,8 +120,8 @@ def allocate_array_space(
         key=array_name,
     )
     # match the new container and new array access tags to the original data_client
-    copy_tiled_access_info(tiled_dataset.data_client.uri, last_container)
-    copy_tiled_access_info(tiled_dataset.data_client.uri, array_client)
+    copy_tiled_access_info(tiled_dataset.data_client, last_container)
+    copy_tiled_access_info(tiled_dataset.data_client, array_client)
 
     logging.info(
         f"Result space allocated in Tiled and segmentation will be \n"
