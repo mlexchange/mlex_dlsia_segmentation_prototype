@@ -119,9 +119,13 @@ def allocate_array_space(
         metadata=metadata,
         key=array_name,
     )
+    # match the new container and new array access tags to the original data_client
+    copy_tiled_access_info(tiled_dataset.data_client, last_container)
+    copy_tiled_access_info(tiled_dataset.data_client, array_client)
 
     logging.info(
-        f"Result space allocated in Tiled and segmentation will be saved in {array_client.uri}."
+        f"Result space allocated in Tiled and segmentation will be \n"
+        f"saved in {array_client.uri} with access_tags {array_client.access_blob.get('tags')}."
     )
 
     return array_client
@@ -148,3 +152,20 @@ def prepare_tiled_containers(io_parameters, dataset, network_name):
     )
     logging.info("Tiled segmentation result space allocated successfully.")
     return seg_client
+
+
+def copy_tiled_access_info(source_client, target_client):
+    """
+    This function copies the access information from a source Tiled URI to a target Tiled client.
+    Input:
+        source_uri: str, The URI of the source Tiled resource.
+        target_client: Tiled client object, The target Tiled client to copy access info to.
+    Output:
+        None
+    """
+    access_blob = source_client.access_blob
+    if access_blob and access_blob.get("tags") is not None:
+        target_client.replace_metadata(access_tags=access_blob["tags"])
+    logging.info(
+        f"Tiled access information copied successfully {source_client.access_blob}."
+    )
