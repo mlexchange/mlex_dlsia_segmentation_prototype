@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 # ===========================================I/O Related Parameters===========================================#
 class IOParameters(BaseModel):
     data_tiled_uri: str = Field(description="tiled uri for image data")
-    data_tiled_api_key: str = Field(description="tiled api key for data client")
+    data_tiled_api_key: Optional[str] = Field(
+        default=None, description="tiled api key for data client"
+    )
     mask_tiled_uri: Optional[str] = Field(
         default=None, description="tiled uri for masks"
     )
@@ -22,7 +24,7 @@ class IOParameters(BaseModel):
     uid_save: str = Field(description="uid to save models, metrics and etc")
     job_name: str = Field(description="segmentation job name")
     uid_retrieve: Optional[str] = Field(
-        description="optional, uid to retrieve models for inference"
+        default=None, description="optional, uid to retrieve models for inference"
     )
     models_dir: Optional[str] = Field(
         default=None, description="directory to save model results"
