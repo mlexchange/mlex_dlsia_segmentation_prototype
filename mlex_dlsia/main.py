@@ -93,7 +93,7 @@ if __name__ == "__main__":
                 "Either mlflow_model or uid_retrieve must be provided for inference mode"
             )
 
-        net = load_network(model_name, network_type=model_parameters.network)
+        net = load_network(model_name)
         logging.info("Model loaded successfully for inference.")
 
         # Prepare dataset for inference

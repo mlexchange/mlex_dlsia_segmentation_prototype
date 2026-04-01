@@ -1,7 +1,9 @@
 import logging
+import os
 
 import mlflow
 import numpy as np
+import torch
 import torch.nn as nn
 from dlsia.core import helpers
 from dlsia.core.networks import msdnet, smsnet, tunet, tunet3plus
@@ -84,26 +86,30 @@ def build_network(
     return network
 
 
-def load_network(model_name, network_type=None):
-    """
-    This function loads pre-trained DLSIA network. Support both single network and ensembles.
-    Input:
-        model_name: str, name of the model in MLflow registry
-        network_type: str, optional, type of network (e.g., "DLSIA SMSNetEnsemble")
-    Output:
-        net: loaded pre-trained network
-    """
-    # Handle ensemble vs single model
-    if network_type == "DLSIA SMSNetEnsemble":
-        logging.info(f"Loading ensemble models from MLflow registry: {model_name}")
-        net = baggin_smsnet_ensemble(mlflow_model_name=model_name)
-    else:
-        # Single model case
-        logging.info(f"Loading latest model from MLflow registry: {model_name}")
-        net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
-        logging.info(f"Model loaded from MLflow registry: models:/{model_name}/latest")
+def load_network(model_name):
+    client = mlflow.MlflowClient()
+    model_version = client.get_latest_versions(model_name)[0]
+    run_id = model_version.run_id
 
-    return net
+    # Download artifacts locally
+    artifact_dir = mlflow.artifacts.download_artifacts(
+        run_id=run_id, artifact_path="model"
+    )
+
+    cfg = model_version.tags  # or load MLmodel config if needed
+    n_nets = int(cfg.get("n_nets", 1))
+    is_ensemble = cfg.get("network") == "DLSIA SMSNetEnsemble"
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    nets = [
+        torch.load(os.path.join(artifact_dir, f"net_{i+1}.pt"), map_location=device)
+        for i in range(n_nets)
+    ]
+
+    if is_ensemble:
+        return model_baggin(models=nets, model_type="classification")
+    else:
+        return nets[0]
 
 
 # ============================MSDNet==================================#
