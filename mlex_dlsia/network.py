@@ -1,7 +1,9 @@
 import logging
+import os
 
 import mlflow
 import numpy as np
+import torch
 import torch.nn as nn
 from dlsia.core import helpers
 from dlsia.core.networks import msdnet, smsnet, tunet, tunet3plus
@@ -84,26 +86,54 @@ def build_network(
     return network
 
 
-def load_network(model_name, network_type=None):
-    """
-    This function loads pre-trained DLSIA network. Support both single network and ensembles.
-    Input:
-        model_name: str, name of the model in MLflow registry
-        network_type: str, optional, type of network (e.g., "DLSIA SMSNetEnsemble")
-    Output:
-        net: loaded pre-trained network
-    """
-    # Handle ensemble vs single model
-    if network_type == "DLSIA SMSNetEnsemble":
-        logging.info(f"Loading ensemble models from MLflow registry: {model_name}")
-        net = baggin_smsnet_ensemble(mlflow_model_name=model_name)
-    else:
-        # Single model case
-        logging.info(f"Loading latest model from MLflow registry: {model_name}")
-        net = mlflow.pytorch.load_model(f"models:/{model_name}/latest")
-        logging.info(f"Model loaded from MLflow registry: models:/{model_name}/latest")
+def load_network(model_name):
+    client = mlflow.MlflowClient()
+    model_version = client.get_latest_versions(model_name)[0]
+    run_id = model_version.run_id
 
-    return net
+    cfg = model_version.tags
+    is_ensemble = cfg.get("network") == "DLSIA SMSNetEnsemble"
+
+    # Download artifacts directly from MLflow under the pyfunc model artifacts dir.
+    # Newer runs store nets as model/artifacts/net_*.pt.
+    artifact_infos = client.list_artifacts(run_id, path="model/artifacts")
+    net_artifact_paths = sorted(
+        [
+            info.path
+            for info in artifact_infos
+            if not info.is_dir and os.path.basename(info.path).startswith("net_")
+        ]
+    )
+
+    if not net_artifact_paths:
+        # Backward-compatible fallback for older layout: model/net_*.pt
+        artifact_infos = client.list_artifacts(run_id, path="model")
+        net_artifact_paths = sorted(
+            [
+                info.path
+                for info in artifact_infos
+                if not info.is_dir and os.path.basename(info.path).startswith("net_")
+            ]
+        )
+
+    n_nets = int(cfg.get("n_nets", len(net_artifact_paths) or 1))
+    if len(net_artifact_paths) < n_nets:
+        raise FileNotFoundError(
+            f"Expected {n_nets} model artifacts but found {len(net_artifact_paths)} for run {run_id}."
+        )
+
+    local_net_paths = [
+        mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=path)
+        for path in net_artifact_paths[:n_nets]
+    ]
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    nets = [torch.load(path, map_location=device) for path in local_net_paths]
+
+    if is_ensemble:
+        return model_baggin(models=nets, model_type="classification")
+    else:
+        return nets[0]
 
 
 # ============================MSDNet==================================#

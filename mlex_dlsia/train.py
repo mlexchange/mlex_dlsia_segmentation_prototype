@@ -8,6 +8,8 @@ import torch.optim as optim
 from dlsia.core.networks.baggins import model_baggin
 from dlsia.core.train_scripts import Trainer
 
+from mlex_dlsia.mlflow_wrapper import SegmentationWrapper
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -23,9 +25,7 @@ def _build_criterion(model_parameters, device, ignore_index=-1):
     Output:
         criterion:
     """
-    # Define criterion and optimizer
     criterion = getattr(nn, model_parameters.criterion)
-    # Convert the string to a list of floats
     weights = [float(x) for x in model_parameters.weights.strip("[]").split(",")]
     weights = torch.tensor(weights, dtype=torch.float).to(device)
     criterion = criterion(weight=weights, ignore_index=ignore_index)
@@ -85,6 +85,7 @@ def run_train(
 
         network_name = model_parameters.network
         trained_nets = []
+        dvclive_savepath = f"{model_dir}/dvc_metrics"
 
         for idx, net in enumerate(networks):
             logger.info(f"{network_name}: {idx+1}/{len(networks)}")
@@ -95,7 +96,6 @@ def run_train(
             if use_dvclive:
                 from dvclive import Live
 
-                dvclive_savepath = f"{model_dir}/dvc_metrics"
                 dvclive = Live(
                     dvclive_savepath, report="html", save_dvc_exp=use_savedvcexp
                 )
@@ -118,15 +118,8 @@ def run_train(
                 use_amp=False,
                 clip_value=None,
             )
-            net, _ = trainer.train_segmentation()  # training happens here
-
+            net, _ = trainer.train_segmentation()
             trained_nets.append(net)
-
-            # Log model to MLflow
-            mlflow.pytorch.log_model(
-                net, f"model_{idx+1}", registered_model_name=io_parameters.uid_save
-            )
-            logging.info(f"Model logged to MLflow with name: {io_parameters.uid_save}")
 
             # Log DVC metrics to MLflow
             if use_dvclive and os.path.exists(dvclive_savepath):
@@ -137,6 +130,30 @@ def run_train(
             torch.cuda.empty_cache()
 
         logger.info(f"{network_name} trained successfully.")
+
+        # Save all trained nets and build artifact paths
+        artifact_paths = {}
+        for idx, net in enumerate(trained_nets):
+            path = os.path.join(model_dir, f"net_{idx+1}.pt")
+            torch.save(net, path)
+            artifact_paths[f"net_{idx+1}"] = path
+
+        # Log model to MLflow once after all nets are trained
+        mlflow.pyfunc.log_model(
+            artifact_path="model",
+            python_model=SegmentationWrapper(),
+            artifacts=artifact_paths,
+            model_config={
+                "network": model_parameters.network,
+                "num_classes": model_parameters.num_classes,
+                "qlty_window": model_parameters.qlty_window,
+                "qlty_step": model_parameters.qlty_step,
+                "qlty_border": model_parameters.qlty_border,
+                "n_nets": len(trained_nets),
+            },
+            registered_model_name=io_parameters.uid_save,
+        )
+        logging.info(f"Model logged to MLflow with name: {io_parameters.uid_save}")
 
         # Create final model (ensemble or single)
         if model_parameters.network == "DLSIA SMSNetEnsemble":
