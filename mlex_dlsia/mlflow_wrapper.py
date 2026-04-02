@@ -58,15 +58,12 @@ class SegmentationWrapper(mlflow.pyfunc.PythonModel):
         if hasattr(model_input, "iloc"):
             row = model_input.iloc[0]
             data_tiled_uri = row.get("data_tiled_uri")
-            data_tiled_api_key = row.get("data_tiled_api_key")
         else:
             data_tiled_uri = model_input.get("data_tiled_uri")
-            data_tiled_api_key = model_input.get("data_tiled_api_key")
 
         # Define IOParameters for dataset initialization
         io_parameters = IOParameters(
             data_tiled_uri=data_tiled_uri,
-            data_tiled_api_key=data_tiled_api_key,
             uid_save=None,
             job_name=None,
             mlflow_model=None,
