@@ -21,8 +21,10 @@ class IOParameters(BaseModel):
     seg_tiled_api_key: Optional[str] = Field(
         default=None, description="tiled api key for segmentation results"
     )
-    uid_save: str = Field(description="uid to save models, metrics and etc")
-    job_name: str = Field(description="segmentation job name")
+    uid_save: Optional[str] = Field(
+        default=None, description="uid to save models, metrics and etc"
+    )
+    job_name: Optional[str] = Field(default=None, description="segmentation job name")
     uid_retrieve: Optional[str] = Field(
         default=None, description="optional, uid to retrieve models for inference"
     )

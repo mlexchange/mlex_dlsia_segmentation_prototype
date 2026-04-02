@@ -5,18 +5,35 @@ from dlsia.core.networks.baggins import model_baggin
 
 from mlex_dlsia.dataset import initialize_tiled_datasets
 from mlex_dlsia.inference import _segment_single_frame, _segment_single_frame_ensemble
-from mlex_dlsia.parameters import IOParameters
+from mlex_dlsia.parameters import (
+    IOParameters,
+    MSDNetParameters,
+    SMSNetEnsembleParameters,
+    TUNet3PlusParameters,
+    TUNetParameters,
+)
 from mlex_dlsia.utils.dataloaders import construct_inference_dataloaders
+
+_NETWORK_PARAMS_MAP = {
+    "DLSIA MSDNet": MSDNetParameters,
+    "DLSIA TUNet": TUNetParameters,
+    "DLSIA TUNet3+": TUNet3PlusParameters,
+    "DLSIA SMSNetEnsemble": SMSNetEnsembleParameters,
+}
 
 
 class SegmentationWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
         # Model params
         cfg = context.model_config
-        self.model_parameters = cfg
+        network_name = cfg.get("network")
+        params_cls = _NETWORK_PARAMS_MAP.get(network_name)
+        if params_cls is None:
+            raise ValueError(f"Unknown network type: {network_name!r}")
+        self.model_parameters = params_cls(**cfg)
 
         # Pick ensemble vs single-net inference function
-        self.network = cfg.get("network")
+        self.network = network_name
         is_ensemble = self.network == "DLSIA SMSNetEnsemble"
         self.final_layer = None if is_ensemble else torch.nn.Softmax(dim=1)
         self._segment_fn = (
@@ -37,9 +54,19 @@ class SegmentationWrapper(mlflow.pyfunc.PythonModel):
             self.net = nets[0]
 
     def predict(self, context, model_input):
+        # MLflow pyfunc converts dataframe_records payloads to a pandas DataFrame.
+        if hasattr(model_input, "iloc"):
+            row = model_input.iloc[0]
+            data_tiled_uri = row.get("data_tiled_uri")
+            data_tiled_api_key = row.get("data_tiled_api_key")
+        else:
+            data_tiled_uri = model_input.get("data_tiled_uri")
+            data_tiled_api_key = model_input.get("data_tiled_api_key")
+
         # Define IOParameters for dataset initialization
         io_parameters = IOParameters(
-            data_tiled_uri=model_input.get("data_tiled_uri"),
+            data_tiled_uri=data_tiled_uri,
+            data_tiled_api_key=data_tiled_api_key,
             uid_save=None,
             job_name=None,
             mlflow_model=None,
@@ -54,7 +81,7 @@ class SegmentationWrapper(mlflow.pyfunc.PythonModel):
             dataset.data_client.ndim >= 3
         ), f"Expected data_client to be at least 3D, got shape {dataset.data_client.shape}"
         results = np.empty(
-            (len(dataset), *dataset.data_client.shape[1:-1]), dtype=np.int8
+            (len(dataset), *dataset.data_client.shape[1:3]), dtype=np.int8
         )
 
         for idx in range(len(dataset)):

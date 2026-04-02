@@ -91,20 +91,44 @@ def load_network(model_name):
     model_version = client.get_latest_versions(model_name)[0]
     run_id = model_version.run_id
 
-    # Download artifacts locally
-    artifact_dir = mlflow.artifacts.download_artifacts(
-        run_id=run_id, artifact_path="model"
-    )
-
-    cfg = model_version.tags  # or load MLmodel config if needed
-    n_nets = int(cfg.get("n_nets", 1))
+    cfg = model_version.tags
     is_ensemble = cfg.get("network") == "DLSIA SMSNetEnsemble"
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    nets = [
-        torch.load(os.path.join(artifact_dir, f"net_{i+1}.pt"), map_location=device)
-        for i in range(n_nets)
+    # Download artifacts directly from MLflow under the pyfunc model artifacts dir.
+    # Newer runs store nets as model/artifacts/net_*.pt.
+    artifact_infos = client.list_artifacts(run_id, path="model/artifacts")
+    net_artifact_paths = sorted(
+        [
+            info.path
+            for info in artifact_infos
+            if not info.is_dir and os.path.basename(info.path).startswith("net_")
+        ]
+    )
+
+    if not net_artifact_paths:
+        # Backward-compatible fallback for older layout: model/net_*.pt
+        artifact_infos = client.list_artifacts(run_id, path="model")
+        net_artifact_paths = sorted(
+            [
+                info.path
+                for info in artifact_infos
+                if not info.is_dir and os.path.basename(info.path).startswith("net_")
+            ]
+        )
+
+    n_nets = int(cfg.get("n_nets", len(net_artifact_paths) or 1))
+    if len(net_artifact_paths) < n_nets:
+        raise FileNotFoundError(
+            f"Expected {n_nets} model artifacts but found {len(net_artifact_paths)} for run {run_id}."
+        )
+
+    local_net_paths = [
+        mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=path)
+        for path in net_artifact_paths[:n_nets]
     ]
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    nets = [torch.load(path, map_location=device) for path in local_net_paths]
 
     if is_ensemble:
         return model_baggin(models=nets, model_type="classification")
